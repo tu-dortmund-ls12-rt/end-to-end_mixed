@@ -1,4 +1,7 @@
-"""Augmented job chains."""
+"""Augmented job chains.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 
 
 class AugJobChain:

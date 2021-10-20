@@ -1,4 +1,7 @@
-"""Creation of communication tasks."""
+"""Creation of communication tasks.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 
 import numpy as np
 import random
@@ -28,7 +31,7 @@ def generate_communication_taskset(num_tasks, min_period, max_period,
     while (trials < max_trials):
         # Create candidates.
         taskset = generate_communication_candidate_taskset(
-                num_tasks, min_period, max_period, rounded)
+            num_tasks, min_period, max_period, rounded)
         taskset = sorted(taskset, key=lambda x: x.priority)
 
         # Compute WCRT.
@@ -47,7 +50,7 @@ def generate_communication_candidate_taskset(num_tasks, min_period, max_period,
     # Generate WCET and periods.
     wcet = (float(CAN_BUS['MESSAGE_BIT'])/CAN_BUS['BANDWIDTH_MBPS'])/10**3
     periods = np.exp(np.random.uniform(
-            low=np.log(min_period), high=np.log(max_period), size=num_tasks))
+        low=np.log(min_period), high=np.log(max_period), size=num_tasks))
     if rounded:  # round to nearest integer.
         periods = np.rint(periods).tolist()
     # Generate priorities.
@@ -77,8 +80,8 @@ def non_preemptive_response_time(taskset):
         workload = 0
         while time <= pivot.deadline:
             workload = (blocked + task.wcet + sum(
-                    math.ceil(float(time)/task.period) * task.wcet
-                    for task in higher_prio_tasks))
+                math.ceil(float(time)/task.period) * task.wcet
+                for task in higher_prio_tasks))
             if (workload <= time):  # stop property
                 return workload
             else:

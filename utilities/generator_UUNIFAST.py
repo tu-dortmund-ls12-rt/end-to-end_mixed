@@ -1,7 +1,9 @@
 """Task set generation with UUNIFAST benchmark.
 
 From the paper: 'Measuring the performance of schedulability tests.' (2005).
-"""
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 import numpy as np
 from scipy import stats
 import utilities.chain as c
@@ -28,21 +30,21 @@ def gen_tasksets(num_tasks, num_tasksets, min_period, max_period, utilization,
     """
     # Create periods.
     tasksets_periods = generate_periods_loguniform(
-            num_tasks, num_tasksets, min_period, max_period, rounded)
+        num_tasks, num_tasksets, min_period, max_period, rounded)
     # Create utilizations.
     tasksets_utilizations = generate_utilizations_uniform(
-            num_tasks, num_tasksets, utilization)
+        num_tasks, num_tasksets, utilization)
     # Create tasksets by matching both of the above.
     tasksets = []
     for i in range(num_tasksets):
         taskset = []
         for j in range(num_tasks):
             task = {
-                    'execution': (tasksets_periods[i][j]
-                                  * tasksets_utilizations[i][j]),
-                    'period': tasksets_periods[i][j],
-                    'deadline': tasksets_periods[i][j]
-                    }
+                'execution': (tasksets_periods[i][j]
+                              * tasksets_utilizations[i][j]),
+                'period': tasksets_periods[i][j],
+                'deadline': tasksets_periods[i][j]
+            }
             taskset.append(task)
         tasksets.append(taskset)
 
@@ -66,21 +68,21 @@ def gen_tasksets_pred(num_tasks, num_tasksets, min_period, max_period,
     """
     # Create periods.
     tasksets_periods = generate_periods_loguniform_discrete(
-            num_tasks, num_tasksets, min_period, max_period, round_down_set)
+        num_tasks, num_tasksets, min_period, max_period, round_down_set)
     # Create utilizations.
     tasksets_utilizations = generate_utilizations_uniform(
-            num_tasks, num_tasksets, utilization)
+        num_tasks, num_tasksets, utilization)
     # Creating tasksets by matching both of the above.
     tasksets = []
     for i in range(num_tasksets):
         taskset = []
         for j in range(num_tasks):
             task = {
-                    'execution': (tasksets_periods[i][j]
-                                  * tasksets_utilizations[i][j]),
-                    'period': tasksets_periods[i][j],
-                    'deadline': tasksets_periods[i][j]
-                    }
+                'execution': (tasksets_periods[i][j]
+                              * tasksets_utilizations[i][j]),
+                'period': tasksets_periods[i][j],
+                'deadline': tasksets_periods[i][j]
+            }
             taskset.append(task)
         tasksets.append(taskset)
 
@@ -102,9 +104,9 @@ def generate_periods_loguniform(num_tasks, num_tasksets, min_period,
     """
     # Create random periods.
     periods = np.exp(np.random.uniform(
-            low=np.log(min_period),
-            high=np.log(max_period),
-            size=(num_tasksets, num_tasks)))
+        low=np.log(min_period),
+        high=np.log(max_period),
+        size=(num_tasksets, num_tasks)))
     # Make list out of them
     if rounded:  # round periods to nearest integer
         return np.rint(periods).tolist()
@@ -125,9 +127,9 @@ def generate_periods_uniform(num_tasks, num_tasksets, min_period,
     """
     # Create random periods.
     periods = np.random.uniform(
-            low=min_period,
-            high=max_period,
-            size=(num_tasksets, num_tasks))
+        low=min_period,
+        high=max_period,
+        size=(num_tasksets, num_tasks))
     # Make list out of them.
     if rounded:  # round periods to nearest integer
         return np.rint(periods).tolist()
@@ -150,10 +152,10 @@ def generate_utilizations_uniform(num_tasks, num_tasksets, utilization):
         for i in range(1, num_tasks):
             # Randomly set next utilization.
             cumulative_utilization_next = (
-                    cumulative_utilization
-                    * random.random() ** (1.0/(num_tasks-i)))
+                cumulative_utilization
+                * random.random() ** (1.0/(num_tasks-i)))
             utilizations.append(
-                    cumulative_utilization - cumulative_utilization_next)
+                cumulative_utilization - cumulative_utilization_next)
             # Compute remaining utilization.
             cumulative_utilization = cumulative_utilization_next
         utilizations.append(cumulative_utilization_next)
@@ -176,7 +178,7 @@ def generate_periods_loguniform_discrete(num_tasks, num_tasksets, min_period,
     """
     # Create periods log-uniformly.
     period_sets = generate_periods_loguniform(
-            num_tasks, num_tasksets, min_period, max_period, rounded=False)
+        num_tasks, num_tasksets, min_period, max_period, rounded=False)
     # Round down to the entries of round_down_set.
     rounded_period_sets = []
     round_down_set.sort(reverse=True)

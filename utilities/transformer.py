@@ -1,4 +1,7 @@
-"""Transform task from dictionaries to task objects for the event simulator."""
+"""Transform task from dictionaries to task objects for the event simulator.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 import utilities.task as t
 from scipy import stats
 

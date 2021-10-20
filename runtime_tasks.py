@@ -122,12 +122,12 @@ def main():
         ###
         print("Task set generation.")
         task_sets_dic = uunifast.gen_tasksets(  # dictionary task sets
-                num_tasks,
-                1,
-                periods_interval[0],
-                periods_interval[1],
-                utilization/100.0,
-                rounded=True)
+            num_tasks,
+            1,
+            periods_interval[0],
+            periods_interval[1],
+            utilization/100.0,
+            rounded=True)
 
         # Transform tasks to fit framework structure.
         accuracy = 10000000
@@ -153,8 +153,8 @@ def main():
 
         # Transfer to ce-chain object.
         ce_chain = ch.CauseEffectChain(
-                0,  # id of the chain
-                ce_chain_as_list
+            0,  # id of the chain
+            ce_chain_as_list
         )
 
         ###
@@ -182,9 +182,9 @@ def main():
             max_period = hyperperiod  # by definition of task_set_dic
 
             sched_interval = (
-                    2 * hyperperiod + max_phase  # interval from paper
-                    + max_e2e_latency  # upper bound job chain length
-                    + max_period)  # for convenience
+                2 * hyperperiod + max_phase  # interval from paper
+                + max_e2e_latency  # upper bound job chain length
+                + max_period)  # for convenience
 
             # Compute number of jobs.
             number_of_jobs = 0
@@ -218,7 +218,7 @@ def main():
 
             # Stop condition: Number of jobs of lowest priority task.
             simulator.dispatcher(
-                    int(math.ceil(sched_interval/task_set[-1].period)))
+                int(math.ceil(sched_interval/task_set[-1].period)))
 
             # Simulation without early completion.
             schedule = simulator.e2e_result()
@@ -358,13 +358,13 @@ def plot_results(
     # Plot result.
     ###
     draw_points(
-            task_numbers,
-            result_values,
-            hyperperiods,
-            "output/runtime/runtime_tasks.pdf",
-            xaxis_label="#Tasks per set",
-            yaxis_label="Runtime [s]",
-            convert=True)
+        task_numbers,
+        result_values,
+        hyperperiods,
+        "output/runtime/runtime_tasks.pdf",
+        xaxis_label="#Tasks per set",
+        yaxis_label="Runtime [s]",
+        convert=True)
 
 
 def draw_points(
@@ -397,10 +397,10 @@ def draw_points(
 
     for idx in range(len(results_ys)):
         plt.plot(
-                results_x,
-                results_ys[idx],
-                marker=markers[idx],
-                label=str(names[idx]))
+            results_x,
+            results_ys[idx],
+            marker=markers[idx],
+            label=str(names[idx]))
 
     # Show a legend.
     plt.legend(title="Max. hyperperiod:", loc=2, fontsize='x-small',

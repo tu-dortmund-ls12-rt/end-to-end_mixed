@@ -1,7 +1,9 @@
 """Task set and cause-effect chain generation with WATERS benchmark.
 
 From the paper: 'Real world automotive benchmark for free' (WATERS 2015).
-"""
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 from scipy import stats
 import numpy as np
 import random
@@ -17,6 +19,7 @@ class task (dict):
     """A task according to our task model.
     Used only for the purpose of task creation.
     """
+
     def __init__(self, execution, period, deadline):
         """Initialize a task."""
         dict.__setitem__(self, "execution", float(execution))
@@ -351,9 +354,9 @@ def gen_tasksets(
 
 def gen_ce_chains(transformed_task_sets):
     distribution_involved_activation_patterns = stats.rv_discrete(
-            values=([1, 2, 3], [0.7, 0.2, 0.1]))
+        values=([1, 2, 3], [0.7, 0.2, 0.1]))
     distribution_number_of_tasks = stats.rv_discrete(
-            values=([2, 3, 4, 5], [0.3, 0.4, 0.2, 0.1]))
+        values=([2, 3, 4, 5], [0.3, 0.4, 0.2, 0.1]))
     ce_chains = []
 
     for task_set in transformed_task_sets:
@@ -361,7 +364,7 @@ def gen_ce_chains(transformed_task_sets):
 
         # Determine different periods of the tasks set.
         activation_patterns = list(set(map(
-                lambda task: task.period, task_set)))
+            lambda task: task.period, task_set)))
 
         if len(activation_patterns) < 3:
             ce_chains.append([])
@@ -373,23 +376,23 @@ def gen_ce_chains(transformed_task_sets):
 
             # Activation patterns of the cause-effect chain.
             involved_activation_patterns = list(np.random.choice(
-                    activation_patterns,
-                    size=int(distribution_involved_activation_patterns.rvs()),
-                    replace=False))
+                activation_patterns,
+                size=int(distribution_involved_activation_patterns.rvs()),
+                replace=False))
 
             # Tasks ordered for activation pattern.
             period_filtered_task_set = []
             for period in involved_activation_patterns:
                 period_filtered_task_set.append(
-                        [task for task in task_set if task.period == period])
+                    [task for task in task_set if task.period == period])
             try:
                 for filt_task_set in period_filtered_task_set:
                     # Try to add 2-5 tasks for each selected activation pattern
                     # into the chain.
                     tasks_in_chain.extend(list(np.random.choice(
-                            filt_task_set,
-                            size=distribution_number_of_tasks.rvs(),
-                            replace=False)))
+                        filt_task_set,
+                        size=distribution_number_of_tasks.rvs(),
+                        replace=False)))
             except ValueError:
                 # If we draw :distribution_number_of_tasks such that it is
                 # larger than the number of tasks with filtered period then
@@ -402,7 +405,7 @@ def gen_ce_chains(transformed_task_sets):
             # Create chain.
             if tasks_in_chain:
                 ce_chains_from_task_set.append(c.CauseEffectChain(
-                        id_of_generated_ce_chain,
-                        list(tasks_in_chain)))
+                    id_of_generated_ce_chain,
+                    list(tasks_in_chain)))
         ce_chains.append(ce_chains_from_task_set)
     return ce_chains

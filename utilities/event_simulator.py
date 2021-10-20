@@ -2,7 +2,9 @@
 
 Source: https://github.com/tu-dortmund-ls12-rt/MissRateSimulator/blob/master/
 simulator.py
-"""
+
+Copied from:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 from __future__ import division
 import operator
 
@@ -11,6 +13,7 @@ class eventSimulator:
     """The event simulator with periodic job behavior, fixed execution time>0,
     constrained deadline and synchronous releases for the single ECU case.
     """
+
     def __init__(self, tasks):
         """Initialize the event simulator.
 
@@ -44,6 +47,7 @@ class eventSimulator:
 
     class eventClass(object):
         """One Event."""
+
         def __init__(self, case, delta, idx):
             """Initialize the event.
 
@@ -97,11 +101,11 @@ class eventSimulator:
         """Behavior at job release of task with index idx."""
         # Set deadline event.
         self.eventList.append(self.eventClass(
-                1, self.tasks[idx].deadline, idx))
+            1, self.tasks[idx].deadline, idx))
 
         # Set next release event.
         self.eventList.append(self.eventClass(
-                0, self.tasks[idx].period, idx))
+            0, self.tasks[idx].period, idx))
 
         # Sort the eventList.
         self.eventList = sorted(self.eventList,
@@ -291,9 +295,9 @@ class eventSimulator:
             self.statusTable[idx][3] = self.statusTable[idx][1]
             # Put release events to the eventList.
             self.eventList.append(self.eventClass(
-                    0, self.tasks[idx].phase, idx))
+                0, self.tasks[idx].phase, idx))
 
         # Sort eventList by remaining time.
         # In case phase not 0 anymore, we need this one.
         self.eventList = sorted(
-                self.eventList, key=operator.attrgetter('delta'))
+            self.eventList, key=operator.attrgetter('delta'))

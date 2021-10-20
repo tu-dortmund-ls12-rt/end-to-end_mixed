@@ -1,4 +1,7 @@
-"""Drawing Plots."""
+"""Drawing Plots.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -50,14 +53,14 @@ class Evaluation:
         ax1.hlines(self.hlines, 0, 4, linestyles=(0, (5, 5)),
                    colors="lightgrey")
         my_plot = ax1.boxplot(
-                [duerr, kloda, our],
-                labels=["Dür", "Klo", "Our"],
-                showfliers=False,
-                boxprops=boxprops,
-                medianprops=medianprops,
-                whiskerprops=whiskerprops,
-                capprops=capprops,
-                widths=0.6)
+            [duerr, kloda, our],
+            labels=["Dür", "Klo", "Our"],
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
         ax1.set_yticks([0, 20, 40, 60, 80, 100])
         ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
         ax1.tick_params(axis='x', rotation=0, labelsize=35)
@@ -108,14 +111,14 @@ class Evaluation:
         ax1.hlines(self.hlines, 0, 4, linestyles=(0, (5, 5)),
                    colors="lightgrey")
         my_plot = ax1.boxplot(
-                [duerr, kloda, our],
-                labels=["Dür", "Klo", "Our"],
-                showfliers=False,
-                boxprops=boxprops,
-                medianprops=medianprops,
-                whiskerprops=whiskerprops,
-                capprops=capprops,
-                widths=0.6)
+            [duerr, kloda, our],
+            labels=["Dür", "Klo", "Our"],
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
         ax1.set_yticks([0, 20, 40, 60, 80, 100])
         ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
         ax1.tick_params(axis='x', rotation=0, labelsize=35)
@@ -164,14 +167,14 @@ class Evaluation:
         ax1.hlines(self.hlines, 0, 3, linestyles=(0, (5, 5)),
                    colors="lightgrey")
         my_plot = ax1.boxplot(
-                [duerr, our],
-                labels=["Dür", "Our"],
-                showfliers=False,
-                boxprops=boxprops,
-                medianprops=medianprops,
-                whiskerprops=whiskerprops,
-                capprops=capprops,
-                widths=0.6)
+            [duerr, our],
+            labels=["Dür", "Our"],
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
         ax1.set_yticks([0, 20, 40, 60, 80, 100])
         ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
         ax1.tick_params(axis='x', rotation=0, labelsize=35)
@@ -220,14 +223,14 @@ class Evaluation:
         ax1.hlines(self.hlines, 0, 3, linestyles=(0, (5, 5)),
                    colors="lightgrey")
         my_plot = ax1.boxplot(
-                [duerr, our],
-                labels=["Dür", "Our"],
-                showfliers=False,
-                boxprops=boxprops,
-                medianprops=medianprops,
-                whiskerprops=whiskerprops,
-                capprops=capprops,
-                widths=0.6)
+            [duerr, our],
+            labels=["Dür", "Our"],
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
         ax1.set_yticks([0, 20, 40, 60, 80, 100])
         ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
         ax1.tick_params(axis='x', rotation=0, labelsize=35)

@@ -1,4 +1,7 @@
-"""Representation of Tasks."""
+"""Representation of Tasks.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 
 
 class Task:
@@ -26,7 +29,7 @@ class Task:
                 + " Phase: {phase:^} \n BCET: {bcet:^} \n WCET: {wcet:^} \n"
                 + " Period: {period:^} \n Deadline: {deadline:^} \n"
                 + " Response: {response:^}").format(
-                        type=str('Message') if self.message else str('Task'),
-                        id=self.id, priority=self.priority, phase=self.phase,
-                        bcet=self.bcet, wcet=self.wcet, period=self.period,
-                        deadline=self.deadline, response=self.rt)
+            type=str('Message') if self.message else str('Task'),
+            id=self.id, priority=self.priority, phase=self.phase,
+            bcet=self.bcet, wcet=self.wcet, period=self.period,
+            deadline=self.deadline, response=self.rt)

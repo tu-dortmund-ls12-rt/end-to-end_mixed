@@ -1,4 +1,7 @@
-"""Representation of cause-effect chains."""
+"""Representation of cause-effect chains.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 
 
 class CauseEffectChain:

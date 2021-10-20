@@ -1,4 +1,7 @@
-"""End-to-End (e2e) Analysis."""
+"""End-to-End (e2e) Analysis.
+
+Source:
+https://github.com/tu-dortmund-ls12-rt/end-to-end"""
 
 import math
 import utilities.task
@@ -139,9 +142,9 @@ class Analyzer:
 
             # Add augmented job chain to candidates.
             candidates.append(aug.AugJobChain(
-                    job_chain=job_chain,
-                    ext_activity=ext_activity,
-                    actuation=actuation))
+                job_chain=job_chain,
+                ext_activity=ext_activity,
+                actuation=actuation))
 
         # Compare length of candidates.
         max_cand = max(candidates, key=lambda cand: cand.length())
@@ -250,9 +253,9 @@ class Analyzer:
 
             # Add augmented job chain to candidates.
             candidates.append(aug.AugJobChain(
-                    job_chain=job_chain,
-                    ext_activity=ext_activity,
-                    actuation=actuation))
+                job_chain=job_chain,
+                ext_activity=ext_activity,
+                actuation=actuation))
 
         # Compare length of candidates.
         max_cand = max(candidates, key=lambda cand: cand.length())
