@@ -2,7 +2,6 @@
 
 Source:
 https://github.com/tu-dortmund-ls12-rt/end-to-end"""
-
 import math
 import utilities.task
 import utilities.augmented_job_chain as aug

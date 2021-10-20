@@ -33,3 +33,9 @@ class Task:
             id=self.id, priority=self.priority, phase=self.phase,
             bcet=self.bcet, wcet=self.wcet, period=self.period,
             deadline=self.deadline, response=self.rt)
+
+    def copy(self):
+        tsk = Task(self.id, self.phase, self.bcet, self.wcet,
+                   self.period, self.deadline, self.priority, self.message)
+        tsk.rt = self.rt
+        return tsk
