@@ -17,6 +17,7 @@ import utilities.generator_UUNIFAST as uunifast
 import utilities.transformer as trans
 import utilities.event_simulator as es
 import utilities.analyzer as a
+import utilities.analyzer_our as a_our
 import utilities.evaluation as eva
 
 import random  # randomization
@@ -67,6 +68,7 @@ def main():
         """
         ###
         # Task set and intra-ecu cause-effect chain generation.
+        # TODO: include phase
         ###
         print("=Task set and cause-effect chain generation.=")
 
@@ -155,7 +157,8 @@ def main():
         print("=Single ECU analyses (TDA, Davare, Duerr).=")
         analyzer = a.Analyzer("0")
 
-        try:
+        # try:
+        while True:
             ###
             # TDA for each task set.
             ###
@@ -186,8 +189,8 @@ def main():
             print("Test: Davare.")
             analyzer.davare(ce_chains)
 
-            # print("Test: Duerr Reaction Time.")
-            # analyzer.reaction_duerr(ce_chains)
+            print("Test: Duerr Reaction Time.")
+            analyzer.reaction_duerr(ce_chains)
 
             # print("Test: Duerr Data Age.")
             # analyzer.age_duerr(ce_chains)
@@ -251,9 +254,9 @@ def main():
                     analyzer.reaction_our(schedule, task_set, chain, max_phase,
                                           hyper_period)
 
-                    # # Kloda analysis, assuming synchronous releases.
-                    # print("Test: Kloda.")
-                    # analyzer.kloda(chain, hyper_period)
+                    # Kloda analysis, assuming synchronous releases.
+                    print("Test: Kloda.")
+                    analyzer.kloda(chain, hyper_period)
 
                     # # Test.
                     # if chain.kloda < chain.our_react:
@@ -268,7 +271,7 @@ def main():
             ###
 
             # make bcet task sets
-            bcet_ratios = [0.5, 0.3, 0.1]
+            bcet_ratios = [1.0, 0.5, 0.3, 0.1]
 
             def change_taskset_bcet(task_set, rat):
                 new_task_set = [task.copy() for task in task_set]
@@ -286,7 +289,7 @@ def main():
 
                 # Determination of the variables used to compute the stop
                 # condition of the simulation
-                max_e2e_latency = max(ce_chains[i], key=lambda chain:
+                max_e2e_latency = max(ce_chains[idxx], key=lambda chain:
                                       chain.davare).davare
                 max_phase = max(task_set, key=lambda task: task.phase).phase
                 max_period = max(task_set, key=lambda task: task.period).period
@@ -308,20 +311,29 @@ def main():
                 # Schedules for the task sets with reduced wcet
                 bcet_schedules = [sim.e2e_result() for sim in simulators]
 
-                breakpoint()
+                # breakpoint()
+                for id, chain in enumerate(ce_chains[idxx]):
+                    chain.our_analysis_bcet = []
+                    for bc_ts, bc_sched in zip(bcet_task_sets, bcet_schedules):
+                        latency = a_our.max_reac_local(
+                            chain, task_set, schedule, bc_ts, bc_sched)
+                        chain.our_analysis_bcet.append(latency)
+
+                    print(id, chain.davare, chain.duerr_react, chain.kloda,
+                          chain.our_analysis_bcet[::-1], chain.our_react)
 
                 ################################
 
                 breakpoint()
 
-        except Exception as e:
-            print(e)
-            print("ERROR: analysis")
-            if debug_flag:
-                breakpoint()
-            else:
-                task_sets = []
-                ce_chains = []
+        # except Exception as e:
+        #     print(e)
+        #     print("ERROR: analysis")
+        #     if debug_flag:
+        #         breakpoint()
+        #     else:
+        #         task_sets = []
+        #         ce_chains = []
 
         ###
         # Inter-ecu cause-effect chain generation.
