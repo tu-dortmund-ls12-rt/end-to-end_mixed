@@ -280,6 +280,7 @@ def main():
                     task.bcet = math.ceil(rat * task.bcet)
                 return new_task_set
 
+            # make bcet task sets
             all_bcet_task_sets = [[change_taskset_bcet(
                 task_set, rat) for rat in bcet_ratios] for task_set in task_sets]
 
@@ -300,9 +301,11 @@ def main():
                     + max_e2e_latency  # upper bound job chain length
                     + max_period)  # for convenience
 
+                # make the simulator
                 simulators = [es.eventSimulator(
                     bcet_task_set) for bcet_task_set in bcet_task_sets]
 
+                # Simulate!
                 # Stop condition: Number of jobs of lowest priority task.
                 for simulator in simulators:
                     simulator.dispatcher(
@@ -312,15 +315,24 @@ def main():
                 bcet_schedules = [sim.e2e_result() for sim in simulators]
 
                 # breakpoint()
+                # Do the analyses:
                 for id, chain in enumerate(ce_chains[idxx]):
-                    chain.our_analysis_bcet = []
+                    chain.our_analysis_mrt_bcet = []
+                    chain.our_analysis_mda_bcet = []
+                    chain.our_analysis_mrda_bcet = []
+
                     for bc_ts, bc_sched in zip(bcet_task_sets, bcet_schedules):
-                        latency = a_our.max_reac_local(
+                        mrt_latency = a_our.max_reac_local(
                             chain, task_set, schedule, bc_ts, bc_sched)
-                        chain.our_analysis_bcet.append(latency)
+                        mda_latency, mrda_latency = a_our.max_age_local(
+                            chain, task_set, schedule, bc_ts, bc_sched)
+
+                        chain.our_analysis_mrt_bcet.append(mrt_latency)
+                        chain.our_analysis_mda_bcet.append(mda_latency)
+                        chain.our_analysis_mrda_bcet.append(mrda_latency)
 
                     print(id, chain.davare, chain.duerr_react, chain.kloda,
-                          chain.our_analysis_bcet[::-1], chain.our_react)
+                          chain.our_analysis_mrt_bcet[::-1], chain.our_analysis_mda_bcet[::-1], chain.our_analysis_mrda_bcet[::-1], chain.our_react)
 
                 ################################
 

@@ -22,11 +22,18 @@ class re_we_analyzer():
             raise IndexError('nbm<0')
         # Case: index too high, has to be made smaller # TODO not sure if this is a good idea since the last entries could be wrong depending on the implementation of the scheduler ...
         elif nmb >= len(lst):
-            new_nmb = nmb - self.hyperperiod/tsk.period  # check one hyperperiod earlier
+            # check one hyperperiod earlier
+            # make new_nmb an integer value
+            div, rem = divmod(self.hyperperiod, tsk.period)
+            assert rem == 0
+            new_nmb = nmb - div
             # add one hyperperiod
-            return self._get_entry(new_nmb, lst, tsk) + self.hyperperiod
+            return [self.hyperperiod + entry for entry in self._get_entry(new_nmb, lst, tsk)]
         else:  # Case: entry can be used
-            return lst[nmb]
+            try:
+                return lst[nmb]
+            except:
+                breakpoint()
 
     def remin(self, task, nmb):
         '''returns the upper bound on read-event of the nbm-th job of a task.'''
@@ -163,7 +170,7 @@ def max_reac_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_
 
     # maximal length
     max_length = max([ana.len_abstr(abstr, task_set_wcet[index_chain[-1]],
-                     task_set_bcet[index_chain[0]]) for abstr in all_abstr])
+                     task_set_bcet[index_chain[0]]) for abstr in all_abstr] + [0])
     chain.our_new_local_mrt = max_length
     return max_length
 
@@ -196,7 +203,7 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
     hyper = compute_hyper(task_set_wcet)
     max_phase = max([task.phase for task in task_set_wcet])
 
-    for idx in itertools.count():
+    for idx in itertools.count(start=1):
         # Compute idx-th abstract integer representation.
         # In backwards manner!
         # We start be filling the tuple abstr from left to right and switch the direction afterwards
@@ -218,7 +225,7 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
         # Turn around the chain
         abstr = abstr[::-1]
 
-        assert len(abstr) == chain.length() + 2
+        # assert len(abstr) == chain.length() + 2 # Note: this is not true anymore, since we have imcomplete chains.
 
         all_abstr.append(abstr[:])
         if abstr[0] == -1:
@@ -240,22 +247,22 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
     # maximal length
     max_length_compl = max(
         [ana.len_abstr(abstr, task_set_wcet[index_chain[-1]],
-                       task_set_bcet[index_chain[0]]) for abstr in complete_abstr]
+                       task_set_bcet[index_chain[0]]) for abstr in complete_abstr] + [0]
     )
     max_length_incompl = max(
         [ana.incomplete_bound(abstr, task_set_wcet[index_chain[-1]],
-                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr]
+                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr] + [0]
     )
     max_length = max(max_length_compl, max_length_incompl)
 
     # maximal reduced length
     max_length_compl_red = max(
         [ana.len_abstr_reduced(abstr, task_set_wcet[index_chain[-1]],
-                               task_set_bcet[index_chain[0]]) for abstr in complete_abstr]
+                               task_set_bcet[index_chain[0]]) for abstr in complete_abstr] + [0]
     )
     max_length_incompl_red = max(
         [ana.incomplete_bound(abstr, task_set_wcet[index_chain[-1]],
-                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr]
+                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr] + [0]
     )
     max_length_red = max(max_length_compl_red, max_length_incompl_red)
 
