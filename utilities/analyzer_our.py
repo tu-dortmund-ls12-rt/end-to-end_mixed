@@ -28,6 +28,7 @@ class re_we_analyzer():
             assert rem == 0
             new_nmb = nmb - div
             # add one hyperperiod
+            # TODO this is not very efficient since we need the values several times.
             return [self.hyperperiod + entry for entry in self._get_entry(new_nmb, lst, tsk)]
         else:  # Case: entry can be used
             try:
@@ -234,7 +235,7 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
             complete_abstr.append(abstr[:])
 
         # Break loop
-        if (chain.chain[0].phase + idx * chain.chain[0].period) >= (max_phase + 2*hyper):
+        if (chain.chain[0].phase + abstr[0] * chain.chain[0].period) >= (max_phase + 2*hyper):
             break
 
         # print([task_set_wcet[i].priority for i in index_chain])
@@ -268,4 +269,162 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
 
     chain.our_new_local_mda = max_length
     chain.our_new_local_mrda = max_length_red
-    return [max_length, max_length_red]
+    return (max_length, max_length_red)
+
+
+def execution_zero_schedule(task_set):
+    '''Since the dispatcher can only handle execution time >0, we generate a "faked" schedule.'''
+    hyperperiod = compute_hyper(task_set)
+    max_phase = max([task.phase for task in task_set])
+
+    # Initialize result dictionary.
+    result = dict()
+    for task in task_set:
+        result[task] = []
+
+    for task in task_set:
+        curr_time = task.phase
+        while curr_time <= max_phase + 2 * hyperperiod:
+            # start and finish directly at release
+            result[task].append((curr_time, curr_time))
+            curr_time += task.period
+
+    return result
+
+
+class rel_dl_analyzer:
+    def __init__(self):
+        pass
+
+    def rel(self, task, nmb):
+        return task.phase + nmb * task.period
+
+    def dl(self, task, nmb):
+        return self.rel(task, nmb) + task.deadline
+
+    def find_next_rel(self, task, bound):
+        '''Find the index of the first job with release after the bound.'''
+        for idx in itertools.count():
+            if self.rel(task, idx) >= bound:
+                return idx
+
+    def find_prev_dl(self, task, bound):
+        '''Find the index of the latest job with deadline before the bound.
+        Note: returns -1 if no such job can be found.'''
+        for idx, idx_next in zip(itertools.count(start=-1), itertools.count(start=0)):
+            if not (self.dl(task, idx_next) <= bound):
+                return idx
+
+
+def mrt_let(chain, task_set):
+    '''Compute maximum reaction time when all tasks adhere to LET.
+    This is an exact analysis.'''
+
+    # Make analyzer
+    ana = rel_dl_analyzer()
+
+    # Set of forward chains
+    fw = []
+
+    # useful values for break-condition and valid check
+    hyper = compute_hyper(task_set)
+    max_phase = max([task.phase for task in task_set])
+    max_first_read_event = max([ana.rel(task, 0) for task in task_set])
+
+    for idx in itertools.count():
+        # check valid
+        if not (ana.rel(chain.chain[0], idx + 1) >= max_first_read_event):
+            continue
+
+        # Compute idx-th fw chain
+        fwidx = []
+
+        fwidx.append(ana.rel(chain.chain[0], idx))  # external activity
+        fwidx.append(idx+1)  # first job
+
+        for curr_task, nxt_task in zip(chain.chain[:-1], chain.chain[1:]):
+            fwidx.append(  # add next release
+                ana.find_next_rel(nxt_task, ana.dl(curr_task, fwidx[-1]))
+            )
+
+        fwidx.append(ana.dl(chain.chain[-1], fwidx[-1]))  # actuation
+
+        assert len(fwidx) == chain.length() + 2
+
+        fw.append(fwidx[:])
+
+        # break condition
+        if ana.rel(chain.chain[0], idx) >= (max_phase + 2*hyper):
+            break
+
+    max_length = max(fwidx[-1] - fwidx[0] for fwidx in fw)
+
+    chain.mrt_let = max_length
+    return max_length
+
+
+def mda_let(chain, task_set):
+    '''Compute maximum data age and maximum reduced data age when all tasks adhere to LET.
+    This is an exact analysis.'''
+
+    # Make analyzer
+    ana = rel_dl_analyzer()
+
+    # Set of backward chains
+    bw = []
+
+    # useful values for break-condition and valid check
+    hyper = compute_hyper(task_set)
+    max_phase = max([task.phase for task in task_set])
+    max_first_read_event = max([ana.rel(task, 0) for task in task_set])
+
+    for idx in itertools.count(start=1):
+
+        # Compute idx-th bw chain
+        bwidx = []
+        # Note: fill by append and reverse afterwards.
+
+        bwidx.append(ana.dl(chain.chain[-1], idx))  # actuation
+        bwidx.append(idx-1)  # last job
+
+        for curr_task, prev_task in zip(chain.chain[::-1][:-1], chain.chain[::-1][1:]):
+            indx = ana.find_prev_dl(prev_task, ana.dl(curr_task, bwidx[-1]))
+            bwidx.append(indx)  # add next release
+
+            # Check if incomplete:
+            if indx == -1:
+                break
+
+        bwidx.append(ana.rel(chain.chain[0], bwidx[-1]))  # actuation
+
+        # Turn around the chain:
+        bwidx = bwidx[::-1]
+
+        # Remove if incomplete:
+        if bwidx[0] == -1:
+            continue
+
+        # Note: here we only have complete chains. The others are removed already
+        assert len(bwidx) == chain.length() + 2
+
+        bw.append(bwidx[:])
+
+        # check valid
+        if not (ana.rel(chain.chain[0], bwidx[1]) >= max_first_read_event):
+            continue
+
+        # break condition
+        if ana.rel(chain.chain[0], bwidx[1]) >= (max_phase + 2*hyper):
+            break
+
+    # maximal length
+    max_length = max(bwidx[-1] - bwidx[0] for bwidx in bw)
+
+    # maximal reduced length
+    max_length_red = max(
+        ana.dl(chain.chain[-1], bwidx[-2]) - bwidx[0] for bwidx in bw)
+
+    chain.mda_let = max_length
+    chain.mrda_let = max_length_red
+
+    return (max_length, max_length_red)

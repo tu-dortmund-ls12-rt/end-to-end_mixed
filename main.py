@@ -258,6 +258,10 @@ def main():
                     print("Test: Kloda.")
                     analyzer.kloda(chain, hyper_period)
 
+                    # TODO remove here
+                    # LET anlysis
+                    a_our.mrt_let(chain, task_set)
+
                     # # Test.
                     # if chain.kloda < chain.our_react:
                     #     if debug_flag:
@@ -271,7 +275,7 @@ def main():
             ###
 
             # make bcet task sets
-            bcet_ratios = [1.0, 0.5, 0.3, 0.1]
+            bcet_ratios = [1.0, 0.7, 0.3, 0.0]
 
             def change_taskset_bcet(task_set, rat):
                 new_task_set = [task.copy() for task in task_set]
@@ -301,18 +305,22 @@ def main():
                     + max_e2e_latency  # upper bound job chain length
                     + max_period)  # for convenience
 
-                # make the simulator
-                simulators = [es.eventSimulator(
-                    bcet_task_set) for bcet_task_set in bcet_task_sets]
+                bcet_schedules = []
+                for bcet_task_set, bcet_rat in zip(bcet_task_sets, bcet_ratios):
+                    if bcet_rat > 0:
+                        # make the simulator
+                        simulator = es.eventSimulator(bcet_task_set)
 
-                # Simulate!
-                # Stop condition: Number of jobs of lowest priority task.
-                for simulator in simulators:
-                    simulator.dispatcher(
-                        int(math.ceil(sched_interval/task_set[-1].period)))
+                        # Simulate! # TODO make schedule for execution 0 manually!
+                        # Stop condition: Number of jobs of lowest priority task.
+                        simulator.dispatcher(
+                            int(math.ceil(sched_interval/task_set[-1].period)))
 
-                # Schedules for the task sets with reduced wcet
-                bcet_schedules = [sim.e2e_result() for sim in simulators]
+                        # Schedules for the task sets with reduced wcet
+                        bcet_schedules.append(simulator.e2e_result())
+                    else:
+                        bcet_schedules.append(
+                            a_our.execution_zero_schedule(bcet_task_set))
 
                 # breakpoint()
                 # Do the analyses:
@@ -332,7 +340,10 @@ def main():
                         chain.our_analysis_mrda_bcet.append(mrda_latency)
 
                     print(id, chain.davare, chain.duerr_react, chain.kloda,
-                          chain.our_analysis_mrt_bcet[::-1], chain.our_analysis_mda_bcet[::-1], chain.our_analysis_mrda_bcet[::-1], chain.our_react)
+                          chain.our_analysis_mrt_bcet[::-1],
+                          # chain.our_analysis_mda_bcet[::-1], chain.our_analysis_mrda_bcet[::-1],
+                          chain.our_react,
+                          chain.mrt_let)
 
                 ################################
 
