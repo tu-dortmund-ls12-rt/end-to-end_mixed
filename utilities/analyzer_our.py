@@ -67,13 +67,47 @@ class re_we_analyzer():
                 # second property (lower priority value means higher priority!)
                 or (curr_task_wc.priority < nxt_task_bc.priority and idx_remin >= curr_rel)
             ):
-                break
+                return idx
 
-        return idx
+    def find_next_bw(self, curr_task_bc, prev_task_wc, curr_index):
+        '''Find next index for the abstract representation in backward manner.
+        Note: returns -1 if no index can be found.'''
+        # remin of current task
+        curr_remin = self.remin(curr_task_bc, curr_index)
+
+        # # wemax of current task
+        # curr_wemax = self.wemax(curr_task_wc, curr_index)
+        # curr_rel = curr_task_wc.phase + curr_index * \
+        #     curr_task_wc.period  # release of current task
+
+        for idxprev, idx in zip(itertools.count(start=-1), itertools.count(start=0)):
+            # wemax and release of job idx of prev_task
+            idx_wemax = self.wemax(prev_task_wc, idx)
+            idx_rel = prev_task_wc.phase + idx * prev_task_wc.period
+
+            if not (
+                curr_remin >= idx_wemax  # first property
+                # second property
+                or (prev_task_wc.priority < curr_task_bc.priority and curr_remin >= idx_rel)
+            ):
+                # if properties are NOT fulfilled, return the previous index
+                return idxprev
 
     def len_abstr(self, abstr, last_tsk_wc, first_tsk_bc):
         '''Length of an abstract representation.'''
         return self.wemax(last_tsk_wc, abstr[-1])-self.remin(first_tsk_bc, abstr[0])
+
+    def len_abstr_reduced(self, abstr, last_tsk_wc, first_tsk_bc):
+        '''REDUCED Length of an abstract representation.'''
+        return self.wemax(last_tsk_wc, abstr[-2])-self.remin(first_tsk_bc, abstr[0])
+
+    def incomplete_bound(self, abstr, last_tsk_wc, first_tsk_bc):
+        '''Second backward bound'''
+        return self.wemax(last_tsk_wc, abstr[-1]) - self.remin(first_tsk_bc, 0)
+
+    def incomplete_bound_reduced(self, abstr, last_tsk_wc, first_tsk_bc):
+        '''Second backward bound'''
+        return self.wemax(last_tsk_wc, abstr[-2]) - self.remin(first_tsk_bc, 0)
 
 
 def max_reac_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_bcet):
@@ -132,3 +166,99 @@ def max_reac_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_
                      task_set_bcet[index_chain[0]]) for abstr in all_abstr])
     chain.our_new_local_mrt = max_length
     return max_length
+
+
+def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_bcet):
+    '''Main method for maximum data age.
+    Returns a list of two values. First is the maximum data age bound, second is
+    the maximum REDUCED data age bound.
+
+    We construct all abstract represenations and compute the maximal length among them.
+    - chain: cause-effect chain as list of tasks
+    - task_set: the task set of the ECU that the ce chain lies on
+    - schedule: the schedule of task_set (simulated beforehand)
+
+    we distinguish between bcet and wcet task set and schedule.'''
+
+    # Make analyzer
+    ana = re_we_analyzer(schedule_bcet, schedule_wcet,
+                         compute_hyper(task_set_wcet))
+
+    # Chain of indeces that describes the cause-effect chain
+    index_chain = [task_set_wcet.index(entry) for entry in chain.chain]
+
+    # Set of all abstract representations
+    all_abstr = []
+    complete_abstr = []
+    incomplete_abstr = []
+
+    # useful values for break-condition
+    hyper = compute_hyper(task_set_wcet)
+    max_phase = max([task.phase for task in task_set_wcet])
+
+    for idx in itertools.count():
+        # Compute idx-th abstract integer representation.
+        # In backwards manner!
+        # We start be filling the tuple abstr from left to right and switch the direction afterwards
+
+        abstr = []
+        abstr.append(idx)  # last entry
+        abstr.append(idx-1)  # second last entry
+
+        for idtsk, prev_idtsk in zip(index_chain[::-1][:-1], index_chain[::-1][1:]):
+            indx = ana.find_next_bw(
+                task_set_bcet[idtsk], task_set_wcet[prev_idtsk], abstr[-1])
+            abstr.append(indx)  # intermediate entries
+
+            if indx == -1:  # check if incomplete
+                break
+
+        abstr.append(abstr[-1])  # first entry
+
+        # Turn around the chain
+        abstr = abstr[::-1]
+
+        assert len(abstr) == chain.length() + 2
+
+        all_abstr.append(abstr[:])
+        if abstr[0] == -1:
+            incomplete_abstr.append(abstr[:])
+        else:
+            complete_abstr.append(abstr[:])
+
+        # Break loop
+        if (chain.chain[0].phase + idx * chain.chain[0].period) >= (max_phase + 2*hyper):
+            break
+
+        # print([task_set_wcet[i].priority for i in index_chain])
+
+        # print([(schedule_bcet[task_set_bcet[i]][j][0], schedule_wcet[task_set_wcet[i]][j][1])
+        #       for i, j in zip(index_chain, abstr[1:-1])])
+
+        # breakpoint()
+
+    # maximal length
+    max_length_compl = max(
+        [ana.len_abstr(abstr, task_set_wcet[index_chain[-1]],
+                       task_set_bcet[index_chain[0]]) for abstr in complete_abstr]
+    )
+    max_length_incompl = max(
+        [ana.incomplete_bound(abstr, task_set_wcet[index_chain[-1]],
+                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr]
+    )
+    max_length = max(max_length_compl, max_length_incompl)
+
+    # maximal reduced length
+    max_length_compl_red = max(
+        [ana.len_abstr_reduced(abstr, task_set_wcet[index_chain[-1]],
+                               task_set_bcet[index_chain[0]]) for abstr in complete_abstr]
+    )
+    max_length_incompl_red = max(
+        [ana.incomplete_bound(abstr, task_set_wcet[index_chain[-1]],
+                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr]
+    )
+    max_length_red = max(max_length_compl_red, max_length_incompl_red)
+
+    chain.our_new_local_mda = max_length
+    chain.our_new_local_mrda = max_length_red
+    return [max_length, max_length_red]
