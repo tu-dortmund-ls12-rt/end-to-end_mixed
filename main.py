@@ -30,6 +30,169 @@ debug_flag = True  # flag to have breakpoint() when errors occur
 random.seed(331)  # set seed for same results
 
 
+########################
+# Some help functions: #
+########################
+
+def task_set_generate(argsg, argsu, argsr):
+    '''Generates task sets.
+    Input: 
+    - argsg = benchmark to choose
+    - argsu = utilization in %
+    - argsr = number of task sets to generate
+    Output: list of task sets.'''
+    try:
+        if argsg == 0:
+            # WATERS benchmark
+            print("WATERS benchmark.")
+
+            # Statistical distribution for task set generation from table 3
+            # of WATERS free benchmark paper.
+            profile = [0.03 / 0.85, 0.02 / 0.85, 0.02 / 0.85, 0.25 / 0.85,
+                       0.25 / 0.85, 0.03 / 0.85, 0.2 / 0.85, 0.01 / 0.85,
+                       0.04 / 0.85]
+            # Required utilization:
+            req_uti = argsu/100.0
+            # Maximal difference between required utilization and actual
+            # utilization is set to 1 percent:
+            threshold = 1.0
+
+            # Create task sets from the generator.
+            # Each task is a dictionary.
+            print("\tCreate task sets.")
+            task_sets_waters = []
+            while len(task_sets_waters) < argsr:
+                task_sets_gen = waters.gen_tasksets(
+                    1, req_uti, profile, True, threshold/100.0, 4)
+                task_sets_waters.append(task_sets_gen[0])
+
+            # Transform tasks to fit framework structure.
+            # Each task is an object of utilities.task.Task.
+            trans1 = trans.Transformer("1", task_sets_waters, 10000000)
+            task_sets = trans1.transform_tasks(False)
+
+        elif argsg == 1:
+            # UUniFast benchmark.
+            print("UUniFast benchmark.")
+
+            # Create task sets from the generator.
+            print("\tCreate task sets.")
+
+            # The following can be used for task generation with the
+            # UUniFast benchmark without predefined periods.
+
+            # # Generate log-uniformly distributed task sets:
+            # task_sets_generator = uunifast.gen_tasksets(
+            #         5, args.r, 1, 100, args.u, rounded=True)
+
+            # Generate log-uniformly distributed task sets with predefined
+            # periods:
+            periods = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+            # Interval from where the generator pulls log-uniformly.
+            min_pull = 1
+            max_pull = 2000
+
+            task_sets_uunifast = uunifast.gen_tasksets_pred(
+                50, argsr, min_pull, max_pull, argsu/100.0, periods)
+
+            # Transform tasks to fit framework structure.
+            trans2 = trans.Transformer("2", task_sets_uunifast, 10000000)
+            task_sets = trans2.transform_tasks(False)
+
+        else:
+            print("Choose a benchmark")
+            raise SystemExit  # exit the program
+
+    except Exception as e:
+        print(e)
+        print("ERROR: task creation")
+        if debug_flag:
+            breakpoint()
+        raise
+
+    return task_sets
+
+
+def TDA(task_set):
+    '''TDA analysis for a task set.
+    Return True if succesful and False if not succesful.'''
+    try:
+        ana = a.Analyzer()
+        # TDA.
+        i = 1
+        for task in task_set:
+            # Prevent WCET = 0 since the scheduler can
+            # not handle this yet. This case can occur due to
+            # rounding with the transformer.
+            if task.wcet == 0:
+                raise ValueError("WCET == 0")
+            task.rt = ana.tda(task, task_set[:(i - 1)])
+            if task.rt > task.deadline:
+                raise ValueError(
+                    "TDA Result: WCRT bigger than deadline!")
+            i += 1
+    except ValueError as e:
+        print(e)
+        return False
+    return True
+
+
+def schedule_task_set(task_set, ce_chains):
+    '''Return the schedule of some task_set.
+    ce_chains is a list of ce_chains that will be computed later on.
+    We need this to compute latency_upper_bound to determine the additional simulation time at the end.
+    Note: 
+    - In case of error, None is returned.
+    - E2E Davare has to be computed beforehand!'''
+
+    try:
+        # Preliminary: compute latency_upper_bound
+        latency_upper_bound = max([ce.davare for ce in ce_chains])
+
+        # Main part: Simulation part
+        simulator = es.eventSimulator(task_set)
+
+        # Determination of the variables used to compute the stop
+        # condition of the simulation
+        max_phase = max(task_set, key=lambda task: task.phase).phase
+        max_period = max(task_set, key=lambda task: task.period).period
+        hyper_period = a.Analyzer.determine_hyper_period(task_set)
+
+        sched_interval = (
+            2 * hyper_period + max_phase  # interval from paper
+            + latency_upper_bound  # upper bound job chain length
+            + max_period)  # for convenience
+
+        # Information for end user.
+        print("\tNumber of tasks: ", len(task_set))
+        print("\tHyperperiod: ", hyper_period)
+        number_of_jobs = 0
+        for task in task_set:
+            number_of_jobs += sched_interval/task.period
+        print("\tNumber of jobs to schedule: ",
+              "%.2f" % number_of_jobs)
+
+        # Stop condition: Number of jobs of lowest priority task.
+        simulator.dispatcher(
+            int(math.ceil(sched_interval/task_set[-1].period)))
+
+        # Simulation without early completion.
+        schedule = simulator.e2e_result()
+
+    except Exception as e:
+        print(e)
+        if debug_flag:
+            breakpoint()
+        schedule = None
+
+    return schedule
+
+
+#################
+# Main function #
+#################
+
+
 def main():
     """Main Function."""
     ###
@@ -53,8 +216,82 @@ def main():
     args = parser.parse_args()
     del parser
 
+    if args.j == 10:
+        """Create task sets, local cause-effect chains and produce schedule."""
+
+        ###
+        # Create task set.
+        # output:
+        ###
+        print('=Task set generation')
+
+        task_sets = task_set_generate(args.g, args.u, args.r)
+
+        ###
+        # CE-Chain generation.
+        ###
+        print('=CE-Chain generation')
+
+        ce_chains = waters.gen_ce_chains(task_sets)
+        # ce_chains contains one set of cause effect chains for each
+        # task set in task_sets.
+
+        # match both
+        assert len(task_sets) == len(ce_chains)
+        ce_ts = list(zip(ce_chains, task_sets))
+
+        ###
+        # Schedule generation
+        ###
+        print('=Schedule generation')
+
+        # Preparation: TDA (for Davare)
+        # Only take those that are succesful.
+        ce_ts = [entry for entry in ce_ts if TDA(entry[1])]
+
+        # Preparation: Davare (for schedule generation)
+        ana = a.Analyzer()
+        for ce, ts in ce_ts:
+            ana.davare([ce])
+
+        # Main: Generate the schedule
+        schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
+
+        # match ce_ts with schedules:
+        assert len(ce_ts) == len(schedules)
+        ce_ts_sched = [cets + (sched,)
+                       for cets, sched in zip(ce_ts, schedules)]
+        # Note: Each entry is now a 3-tuple of list of cause-effect chain,
+        # corresponding task set, and corresponding schedule
+
+        # flatten the list (one entry per ce-chain)
+        ce_ts_sched_flat = [(ce, ts, sched)
+                            for ce_lst, ts, sched in ce_ts_sched for ce in ce_lst]
+
+        ###
+        # Save the results
+        ###
+        print("=Save data.=")
+
+        try:
+            np.savez("output/1generation/ce_ts_sched_u="+str(args.u)
+                     + "_n=" + str(args.n)
+                     + "_g=" + str(args.g) + ".npz", gen=ce_ts_sched)
+            np.savez("output/1generation/ce_ts_sched_flat_u="+str(args.u)
+                     + "_n=" + str(args.n)
+                     + "_g=" + str(args.g) + ".npz", gen=ce_ts_sched_flat)
+
+        except Exception as e:
+            print(e)
+            print("ERROR: save")
+            if debug_flag:
+                breakpoint()
+            else:
+                return
+        breakpoint()
+
     if args.j == 0:
-        """Comparison implicit communication
+        """Comparison IMPLICIT COMMUNICATION.
 
         Required arguments:
         -j1
@@ -152,13 +389,12 @@ def main():
                 ce_chains = []
 
         ###
-        # Single ECU analyses (TDA, Davare, Duerr).
+        # Old Analyses.
         ###
-        print("=Single ECU analyses (TDA, Davare, Duerr).=")
+        print("=Old analyses.=")
         analyzer = a.Analyzer("0")
 
-        # try:
-        while True:
+        try:
             ###
             # TDA for each task set.
             ###
@@ -184,21 +420,25 @@ def main():
                     ce_chains.remove(ce_chains[idxx])
                     continue
 
-            # # End-to-End Analyses.
-            # To find fitting length of schedule interval
+            ###
+            # Numerical End-to-End Analyses.
+            # Note: also used to find fitting length of schedule interval
+            ###
+            print("=Numerical Analyses")
             print("Test: Davare.")
             analyzer.davare(ce_chains)
 
             print("Test: Duerr Reaction Time.")
             analyzer.reaction_duerr(ce_chains)
 
-            # print("Test: Duerr Data Age.")
-            # analyzer.age_duerr(ce_chains)
+            print("Test: Duerr Data Age.")
+            analyzer.age_duerr(ce_chains)
 
             ###
-            # Second analyses (Simulation, Our, Kloda).
+            # Simulation based Analyses.
             ###
-            print("=Second analyses (Simulation, Our, Kloda).=")
+            print("=Simulation based Analyses.=")
+
             schedules = []
             for i, task_set in enumerate(task_sets):
                 print("=Task set ", i+1)
@@ -258,9 +498,9 @@ def main():
                     print("Test: Kloda.")
                     analyzer.kloda(chain, hyper_period)
 
-                    # TODO remove here
-                    # LET anlysis
-                    a_our.mrt_let(chain, task_set)
+                    # # TODO remove here
+                    # # LET anlysis
+                    # a_our.mrt_let(chain, task_set)
 
                     # # Test.
                     # if chain.kloda < chain.our_react:
@@ -272,6 +512,7 @@ def main():
 
             ###
             # Our Maximum data age and maximum reaction time analysis
+            # for different BCET/WCET-ratios we compare the performance of our method.
             ###
 
             # make bcet task sets
@@ -349,55 +590,17 @@ def main():
 
                 breakpoint()
 
-        # except Exception as e:
-        #     print(e)
-        #     print("ERROR: analysis")
-        #     if debug_flag:
-        #         breakpoint()
-        #     else:
-        #         task_sets = []
-        #         ce_chains = []
+        except Exception as e:
+            print(e)
+            print("ERROR: analysis")
+            if debug_flag:
+                breakpoint()
+            else:
+                task_sets = []
+                ce_chains = []
 
         ###
-        # Inter-ecu cause-effect chain generation.
-        ###
-
-        # flattened list of ce chains
-        flat_ce_chains = [item for sublist in ce_chains for item in sublist]
-
-        print("=Inter-ecu cause-effect chain generation.=")
-        number_interconn_ce_chains = 1000  # TODO change to 10_000
-
-        chains_inter = []
-        for j in range(0, number_interconn_ce_chains):
-            chain_all = []  # sequence of all tasks (from chains + comm tasks)
-            i_chain_all = []  # sequence of chains and comm_tasks
-
-            # # Generate communication tasks.
-            # com_tasks = comm.generate_communication_taskset(20, 10, 1000, True)
-
-            # Fill chain_all and i_chain_all.
-            # k = 0
-            for chain in list(np.random.choice(
-                    flat_ce_chains, 5, replace=False)):  # randomly choose 5
-                i_chain_all.append(chain)
-                for task in chain.chain:
-                    chain_all.append(task)
-                # if k < 4:  # communication tasks are only added in between
-                #     chain_all.append(com_tasks[k])
-                #     i_chain_all.append(com_tasks[k])
-                # k += 1
-
-            chains_inter.append(c.CauseEffectChain(0, chain_all, i_chain_all))
-
-            # End user notification
-            if j % 100 == 0:
-                print("\t", j)
-
-        breakpoint()
-
-        ###
-        # Save data.
+        # Save the results
         ###
         print("=Save data.=")
 

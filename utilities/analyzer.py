@@ -13,7 +13,7 @@ debug_flag = False  # flag to have breakpoint() when errors occur
 class Analyzer:
     """Analyzer to do the analysis."""
 
-    def __init__(self, e_id):
+    def __init__(self, e_id=0):
         """Creates an analyzer represented by ID."""
         self.id = e_id  # unique identifier
 
