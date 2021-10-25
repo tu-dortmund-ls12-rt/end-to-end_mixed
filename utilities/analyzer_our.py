@@ -388,21 +388,21 @@ def mda_let(chain, task_set):
         bwidx.append(idx-1)  # last job
 
         for curr_task, prev_task in zip(chain.chain[::-1][:-1], chain.chain[::-1][1:]):
-            indx = ana.find_prev_dl(prev_task, ana.dl(curr_task, bwidx[-1]))
+            indx = ana.find_prev_dl(prev_task, ana.rel(curr_task, bwidx[-1]))
             bwidx.append(indx)  # add next release
 
             # Check if incomplete:
             if indx == -1:
                 break
 
+        # Remove if incomplete:
+        if bwidx[-1] == -1:
+            continue
+
         bwidx.append(ana.rel(chain.chain[0], bwidx[-1]))  # actuation
 
         # Turn around the chain:
         bwidx = bwidx[::-1]
-
-        # Remove if incomplete:
-        if bwidx[0] == -1:
-            continue
 
         # Note: here we only have complete chains. The others are removed already
         assert len(bwidx) == chain.length() + 2

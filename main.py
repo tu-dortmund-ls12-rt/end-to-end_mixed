@@ -45,7 +45,7 @@ def time_now():
 
 def task_set_generate(argsg, argsu, argsr):
     '''Generates task sets.
-    Input: 
+    Input:
     - argsg = benchmark to choose
     - argsu = utilization in %
     - argsr = number of task sets to generate
@@ -150,7 +150,7 @@ def schedule_task_set(task_set, ce_chains, print_status=True):
     '''Return the schedule of some task_set.
     ce_chains is a list of ce_chains that will be computed later on.
     We need this to compute latency_upper_bound to determine the additional simulation time at the end.
-    Note: 
+    Note:
     - In case of error, None is returned.
     - E2E Davare has to be computed beforehand!'''
 
@@ -298,6 +298,65 @@ def our_mrt_mRda(lst, bcet):
     return (mrt_res, mda_res, mrda_res)
 
 
+def let_mrt(lst_flat):
+    '''analysis with LET communication policy'''
+    return a_our.mrt_let(lst_flat[0], lst_flat[1])
+
+
+def let_mRda(lst_flat):
+    '''analysis with LET communication policy
+    Note: Returns tuple of mda and mrda result.'''
+    return a_our.mda_let(lst_flat[0], lst_flat[1])
+
+
+def analyze_mixed_mrt(lst_inter, scenario):
+    '''Analyze a mixed setup. 
+    lst_inter is a list where each entry is a list of ce chain, task set and schedule
+    '''
+
+    e2e_latency = 0
+
+    for entry, sc in zip(lst_inter, scenario[1]):
+        if sc == 'impl':
+            e2e_latency += entry[0].our_mrt[0]
+        elif sc == 'let':
+            e2e_latency += entry[0].let_mrt
+
+    return e2e_latency
+
+
+def analyze_mixed_mda(lst_inter, scenario):
+    '''Analyze a mixed setup. 
+    lst_inter is a list where each entry is a list of ce chain, task set and schedule
+    '''
+
+    e2e_latency = 0
+
+    for entry, sc in zip(lst_inter, scenario[1]):
+        if sc == 'impl':
+            e2e_latency += entry[0].our_mda[0]
+        elif sc == 'let':
+            e2e_latency += entry[0].let_mda
+
+    return e2e_latency
+
+
+def analyze_mixed_mrda(lst_inter, scenario):
+    '''Analyze a mixed setup. 
+    lst_inter is a list where each entry is a list of ce chain, task set and schedule
+    '''
+
+    e2e_latency = 0
+
+    for entry, sc in zip(lst_inter, scenario[1]):
+        if sc == 'impl':
+            e2e_latency += entry[0].our_mrda[0]
+        elif sc == 'let':
+            e2e_latency += entry[0].let_mrda
+
+    return e2e_latency
+
+
 #################
 # Main function #
 #################
@@ -410,7 +469,6 @@ def main():
         ###
         print(time_now(), "= Load data =")
 
-        # flattened list (one chain per entry):
         filename = ("output/1generation/ce_ts_sched_u="+str(args.u)
                     + "_n=" + str(args.n)
                     + "_g=" + str(args.g) + ".npz")
@@ -531,6 +589,12 @@ def main():
 
         bcet_ratios = [1.0, 0.7, 0.3, 0.0]
 
+        # Add dictionary for each cause-effect chain
+        for ce, _, _ in ce_ts_sched_flat:
+            ce.our_mrt = dict()
+            ce.our_mda = dict()
+            ce.our_mrda = dict()
+
         for bcet in bcet_ratios:
             print(time_now(), 'BCET/WCET =', bcet)
 
@@ -543,9 +607,9 @@ def main():
             assert len(res_our) == len(ce_ts_sched)
             for res, entry in zip(res_our, ce_ts_sched):
                 for idxx, ce in enumerate(entry[0]):
-                    ce.our_mrt = res[0][idxx]
-                    ce.our_mda = res[1][idxx]
-                    ce.our_mrda = res[2][idxx]
+                    ce.our_mrt[bcet] = res[0][idxx]
+                    ce.our_mda[bcet] = res[1][idxx]
+                    ce.our_mrda[bcet] = res[2][idxx]
 
         print(ce_ts_sched_flat[0][0].our_mrt,
               ce_ts_sched_flat[0][0].our_mda,
@@ -563,6 +627,136 @@ def main():
         np.savez(output_filename, gen=ce_ts_sched)
 
         print(time_now(), '= Done =')
+
+    if args.j == 12:
+        '''mixed setup evaluation -- interconnected
+        Note:
+        - for implicit we assume BCET/WCET = 0
+        '''
+
+        scenarios = [
+            [2, ['impl', 'let']],
+            [2, ['let', 'impl']],
+            [4, ['impl', 'let', 'impl', 'let']],
+            [4, ['let', 'impl', 'let', 'impl']],
+        ]
+
+        ###
+        # Load data
+        ###
+        print(time_now(), "= Load data =")
+
+        filename = ("output/2implicit/ce_ts_sched_u="+str(args.u)
+                    + "_n=" + str(args.n)
+                    + "_g=" + str(args.g) + ".npz")
+        data = np.load(filename, allow_pickle=True)
+        ce_ts_sched = data.f.gen  # this one is used
+
+        ce_ts_sched_flat = flatten(ce_ts_sched)  # this one is used
+
+        ###
+        # Make interconnected mixed chain
+        ###
+        nmb_inter = 10
+
+        ce_ts_sched_inter = []
+
+        for nmb_sc, _ in scenarios:
+            ce_ts_sched_inter.append([random.sample(
+                ce_ts_sched_flat, nmb_sc) for _ in range(nmb_inter)])
+            # Note: each entry is a list of nmb_sc ce chains with corresponding task set and schedule
+
+        assert len(ce_ts_sched_inter) == len(scenarios)
+
+        ###
+        # Analyze
+        ###
+        print(time_now(), '= Analysis =')
+
+        # == LET: MRT
+        print(time_now(), 'LET: MRT')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_let_mrt = p.map(let_mrt, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_let_mrt) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_let_mrt, ce_ts_sched_flat):
+            entry[0].let_mrt = res
+
+        # == LET: M(R)DA
+        print(time_now(), 'LET: M(R)DA')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_let_mRda = p.map(let_mRda, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_let_mRda) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_let_mRda, ce_ts_sched_flat):
+            entry[0].let_mda = res[0]
+            entry[0].let_mrda = res[1]
+
+        # == mixed scenario
+        print(time_now(), 'Mixed Scenarios')
+
+        final_results = []
+
+        for sc, entry_inter in zip(scenarios, ce_ts_sched_inter):
+            # Get result
+            with Pool(args.p) as p:
+                res_mix_mrt = p.starmap(analyze_mixed_mrt, zip(
+                    entry_inter, itertools.repeat(sc)))
+                res_mix_mda = p.starmap(analyze_mixed_mda, zip(
+                    entry_inter, itertools.repeat(sc)))
+                res_mix_mrda = p.starmap(analyze_mixed_mrda, zip(
+                    entry_inter, itertools.repeat(sc)))
+
+            # Set results
+            assert len(res_mix_mrt) == len(entry_inter)
+            assert len(res_mix_mda) == len(entry_inter)
+            assert len(res_mix_mrda) == len(entry_inter)
+
+            final_results.append([res_mix_mrt, res_mix_mda, res_mix_mrda])
+
+        # # DEBUG
+        # this, this_ts, _ = ce_ts_sched_inter[0][0][1]
+        # print(this.chain, [t.period for t in this.chain],
+        #       this.let_mrt, this.let_mda, this.let_mrda)
+        # breakpoint()
+
+        # a_our.mda_let(this, this_ts)
+
+        ###
+        # Store data
+        ###
+        print(time_now(), '= Store data =')
+        output_filename = ("output/3mixedinter/inter_res_u=" + str(args.u) +
+                           "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
+        np.savez(output_filename, result=final_results, scenarios=scenarios)
+
+        print(time_now(), '= Done =')
+
+    if args.j == 13:
+        '''mixed setup evaluation -- intraconnected
+        '''
+
+        ###
+        # Load data
+        ###
+
+        ###
+        # Make intraconnected mixed chain
+        ###
+
+        ###
+        # Analyze
+        ###
+
+        ###
+        # Store data
+        ###
 
     if args.j == 0:
         """Comparison IMPLICIT COMMUNICATION.
