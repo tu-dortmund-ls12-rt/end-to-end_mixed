@@ -20,6 +20,9 @@ import utilities.analyzer as a
 import utilities.analyzer_our as a_our
 import utilities.evaluation as eva
 
+import time
+import sys
+
 import random  # randomization
 from multiprocessing import Pool  # multiprocessing
 import itertools  # better performance
@@ -33,6 +36,12 @@ random.seed(331)  # set seed for same results
 ########################
 # Some help functions: #
 ########################
+
+def time_now():
+    t = time.localtime()
+    current_time = time.strftime("%H:%M:%S", t)
+    return current_time
+
 
 def task_set_generate(argsg, argsu, argsr):
     '''Generates task sets.
@@ -137,7 +146,7 @@ def TDA(task_set):
     return True
 
 
-def schedule_task_set(task_set, ce_chains):
+def schedule_task_set(task_set, ce_chains, print_status=True):
     '''Return the schedule of some task_set.
     ce_chains is a list of ce_chains that will be computed later on.
     We need this to compute latency_upper_bound to determine the additional simulation time at the end.
@@ -163,14 +172,15 @@ def schedule_task_set(task_set, ce_chains):
             + latency_upper_bound  # upper bound job chain length
             + max_period)  # for convenience
 
-        # Information for end user.
-        print("\tNumber of tasks: ", len(task_set))
-        print("\tHyperperiod: ", hyper_period)
-        number_of_jobs = 0
-        for task in task_set:
-            number_of_jobs += sched_interval/task.period
-        print("\tNumber of jobs to schedule: ",
-              "%.2f" % number_of_jobs)
+        if print_status:
+            # Information for end user.
+            print("\tNumber of tasks: ", len(task_set))
+            print("\tHyperperiod: ", hyper_period)
+            number_of_jobs = 0
+            for task in task_set:
+                number_of_jobs += sched_interval/task.period
+            print("\tNumber of jobs to schedule: ",
+                  "%.2f" % number_of_jobs)
 
         # Stop condition: Number of jobs of lowest priority task.
         simulator.dispatcher(
@@ -186,6 +196,106 @@ def schedule_task_set(task_set, ce_chains):
         schedule = None
 
     return schedule
+
+
+def flatten(ce_ts_sched):
+    '''Used to flatten the list ce_ts_sched'''
+    ce_ts_sched_flat = [(ce, ts, sched)
+                        for ce_lst, ts, sched in ce_ts_sched for ce in ce_lst]
+    return ce_ts_sched_flat
+
+
+def change_taskset_bcet(task_set, rat):
+    '''Copy task set and change the wcet/bcet of each task by a given ratio.'''
+    new_task_set = [task.copy() for task in task_set]
+    for task in new_task_set:
+        task.wcet = math.ceil(rat * task.wcet)
+        task.bcet = math.ceil(rat * task.bcet)
+    # Note: ceiling function makes sure there is never execution of 0
+    return new_task_set
+
+
+###############################
+# Help functions for Analysis #
+###############################
+ana = a.Analyzer()
+
+# Note:
+# lst_flat = (ce, ts, sched)
+# lst = ([ces], ts, sched)
+
+
+def davare(lst_flat):
+    ce = lst_flat[0]
+    return ana.davare_single(ce)
+
+
+def kloda(lst_flat):
+    ce = lst_flat[0]
+    hyper = ana.determine_hyper_period(lst_flat[1])
+    return ana.kloda(ce, hyper)
+
+
+def D19_mrt(lst_flat):
+    ce = lst_flat[0]
+    return ana.reaction_duerr_single(ce)
+
+
+def D19_mda(lst_flat):
+    ce = lst_flat[0]
+    return ana.age_duerr_single(ce)
+
+
+def G21_mda(lst_flat):
+    sched = lst_flat[2]
+    ts = lst_flat[1]
+    ce = lst_flat[0]
+    max_phase = max(t.phase for t in ts)
+    hyper = ana.determine_hyper_period(ts)
+    return ana.max_age_our(sched, ts, ce, max_phase, hyper, reduced=False)
+
+
+def G21_mrda(lst_flat):
+    sched = lst_flat[2]
+    ts = lst_flat[1]
+    ce = lst_flat[0]
+    max_phase = max(t.phase for t in ts)
+    hyper = ana.determine_hyper_period(ts)
+    return ana.max_age_our(sched, ts, ce, max_phase, hyper, reduced=True)
+
+
+def G21_mrt(lst_flat):
+    sched = lst_flat[2]
+    ts = lst_flat[1]
+    ce = lst_flat[0]
+    max_phase = max(t.phase for t in ts)
+    hyper = ana.determine_hyper_period(ts)
+    return ana.reaction_our(sched, ts, ce, max_phase, hyper)
+
+
+def our_mrt_mRda(lst, bcet):
+    '''Takes non-flattened list as input, because the schedules can be reused.'''
+    ts = lst[1]  # wcet task set
+    rat_ts = change_taskset_bcet(ts, bcet)  # bcet task set
+    ce_lst = lst[0]  # list of ce chains
+    if bcet != 0:  # the dispatcher can only handle execution != 0
+        rat_sched = schedule_task_set(
+            rat_ts, ce_lst, print_status=False)  # schedule with bcet
+    else:
+        rat_sched = a_our.execution_zero_schedule(rat_ts)
+    sched = lst[2]  # schedule with wcet
+
+    # maximum reaction time result
+    mrt_res = [a_our.max_reac_local(
+        ce, ts, sched, rat_ts, rat_sched) for ce in ce_lst]
+    mRda_res = [a_our.max_age_local(
+        ce, ts, sched, rat_ts, rat_sched) for ce in ce_lst]
+
+    mda_res, mrda_res = list(zip(*mRda_res))
+    mda_res = list(mda_res)  # maximum data age result
+    mrda_res = list(mrda_res)  # maximum reduced data age result
+
+    return (mrt_res, mda_res, mrda_res)
 
 
 #################
@@ -206,6 +316,9 @@ def main():
     parser.add_argument("-u", type=float, default=50)
     # task generation (0: WATERS Benchmark, 1: UUnifast):
     parser.add_argument("-g", type=int, default=0)
+
+    # number of concurrent processes:
+    parser.add_argument("-p", type=int, default=1)
 
     # only for args.j==1:
     # name of the run:
@@ -254,7 +367,7 @@ def main():
         for ce, ts in ce_ts:
             ana.davare([ce])
 
-        # Main: Generate the schedule
+        # Main: Generate the schedule # TODO do this with starmap
         schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
 
         # match ce_ts with schedules:
@@ -263,10 +376,6 @@ def main():
                        for cets, sched in zip(ce_ts, schedules)]
         # Note: Each entry is now a 3-tuple of list of cause-effect chain,
         # corresponding task set, and corresponding schedule
-
-        # flatten the list (one entry per ce-chain)
-        ce_ts_sched_flat = [(ce, ts, sched)
-                            for ce_lst, ts, sched in ce_ts_sched for ce in ce_lst]
 
         ###
         # Save the results
@@ -277,9 +386,6 @@ def main():
             np.savez("output/1generation/ce_ts_sched_u="+str(args.u)
                      + "_n=" + str(args.n)
                      + "_g=" + str(args.g) + ".npz", gen=ce_ts_sched)
-            np.savez("output/1generation/ce_ts_sched_flat_u="+str(args.u)
-                     + "_n=" + str(args.n)
-                     + "_g=" + str(args.g) + ".npz", gen=ce_ts_sched_flat)
 
         except Exception as e:
             print(e)
@@ -288,7 +394,175 @@ def main():
                 breakpoint()
             else:
                 return
-        breakpoint()
+
+    elif args.j == 11:
+        '''Implicit communication analyses.
+
+        Input:
+        - args.u
+        - args.n
+        - args.g
+        - args.p
+        '''
+
+        ###
+        # Load data
+        ###
+        print(time_now(), "= Load data =")
+
+        # flattened list (one chain per entry):
+        filename = ("output/1generation/ce_ts_sched_u="+str(args.u)
+                    + "_n=" + str(args.n)
+                    + "_g=" + str(args.g) + ".npz")
+        data = np.load(filename, allow_pickle=True)
+        ce_ts_sched = data.f.gen  # this one is used
+
+        ce_ts_sched_flat = flatten(ce_ts_sched)  # this one is used
+
+        ###
+        # Other analyses
+        # - Davare
+        # - Kloda
+        # - D19
+        # - G21
+        ###
+        # ana = a.Analyzer()
+        print(time_now(), '= Other analyses =')
+
+        ###
+        # ==Davare
+        print(time_now(), 'Davare')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_davare = p.map(davare, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_davare) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_davare, ce_ts_sched_flat):
+            entry[0].davare = res
+
+        ###
+        # ==Kloda
+        print(time_now(), 'Kloda')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_kloda = p.map(kloda, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_kloda) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_kloda, ce_ts_sched_flat):
+            entry[0].kloda = res
+
+        ###
+        # ==Duerr (D19): MDA
+        print(time_now(), 'D19: MDA')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_d19_mda = p.map(D19_mda, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_d19_mda) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_d19_mda, ce_ts_sched_flat):
+            entry[0].d19_mrda = res
+
+        # ==Duerr (D19): MRT
+        print(time_now(), 'D19: MRT')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_d19_mrt = p.map(D19_mrt, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_d19_mrt) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_d19_mrt, ce_ts_sched_flat):
+            entry[0].d19_mrt = res
+
+        ###
+        # ==Guenzel (G21): MDA
+        print(time_now(), 'G21: MDA')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_g21_mda = p.map(G21_mda, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_g21_mda) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_g21_mda, ce_ts_sched_flat):
+            entry[0].g21_mda = res
+
+        # ==Guenzel (G21): MRDA
+        print(time_now(), 'G21: MRDA')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_g21_mrda = p.map(G21_mrda, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_g21_mrda) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_g21_mrda, ce_ts_sched_flat):
+            entry[0].g21_mrda = res
+
+        # ==Guenzel (G21): MRT
+        print(time_now(), 'G21: MRT')
+
+        # Get result
+        with Pool(args.p) as p:
+            res_g21_mrt = p.map(G21_mrt, ce_ts_sched_flat)
+
+        # Set results
+        assert len(res_g21_mrt) == len(ce_ts_sched_flat)
+        for res, entry in zip(res_g21_mrt, ce_ts_sched_flat):
+            entry[0].g21_mrt = res
+
+        # print(ce_ts_sched_flat[0][0].g21_mda, ce_ts_sched_flat[0][0].g21_mrda,
+        #       ce_ts_sched_flat[0][0].g21_mrt)
+        # breakpoint()
+
+        ###
+        # Our analysis
+        ###
+
+        # Note: given some bcet ratio, make new schedule, analyse, put value to ce chain.
+
+        print(time_now(), '= Our analysis =')
+
+        bcet_ratios = [1.0, 0.7, 0.3, 0.0]
+
+        for bcet in bcet_ratios:
+            print(time_now(), 'BCET/WCET =', bcet)
+
+            # Get result
+            with Pool(args.p) as p:
+                res_our = p.starmap(our_mrt_mRda, zip(
+                    ce_ts_sched, itertools.repeat(bcet)))
+
+            # Set results
+            assert len(res_our) == len(ce_ts_sched)
+            for res, entry in zip(res_our, ce_ts_sched):
+                for idxx, ce in enumerate(entry[0]):
+                    ce.our_mrt = res[0][idxx]
+                    ce.our_mda = res[1][idxx]
+                    ce.our_mrda = res[2][idxx]
+
+        print(ce_ts_sched_flat[0][0].our_mrt,
+              ce_ts_sched_flat[0][0].our_mda,
+              ce_ts_sched_flat[0][0].our_mrda)
+
+        # breakpoint()
+
+        ###
+        # Store data
+        ###
+        print(time_now(), '= Store data =')
+
+        output_filename = ("output/2implicit/ce_ts_sched_u=" + str(args.u) +
+                           "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
+        np.savez(output_filename, gen=ce_ts_sched)
+
+        print(time_now(), '= Done =')
 
     if args.j == 0:
         """Comparison IMPLICIT COMMUNICATION.

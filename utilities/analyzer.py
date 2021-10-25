@@ -366,6 +366,19 @@ class Analyzer:
                 # Store result.
                 chain.davare = latency
 
+    def davare_single(self, chain):  # Added in October 21
+        """End-to-end latency analysis from Davare.
+
+        Input: One chain.
+        """
+        latency = 0
+        for task in chain.chain:
+            latency += task.period + task.rt
+        # Store result.
+        chain.davare = latency
+
+        return latency
+
     ###
     # Duerr analysis from 'End-to-End Timing Analysis of Sporadic Cause-Effect
     # Chains in Distributed Systems' (2019).
@@ -389,6 +402,21 @@ class Analyzer:
                 # Store result.
                 chain.duerr_react = latency
 
+    def reaction_duerr_single(self, chain):  # added in Oct 21
+        # Compute latency.
+        latency = chain.chain[-1].rt + chain.chain[0].period
+        for task, next_task in zip(chain.chain[:-1], chain.chain[1:]):
+            if (task.priority > next_task.priority
+                    or next_task.message or task.message):
+                part2 = task.rt
+            else:
+                part2 = 0
+            latency += max(task.rt, next_task.period + part2)
+        # Store result.
+        chain.duerr_react = latency
+
+        return latency
+
     def age_duerr(self, chain_sets):
         """Maximum data age analysis from Duerr.
 
@@ -407,6 +435,21 @@ class Analyzer:
                     latency += task.period + part2
                 # Store result.
                 chain.duerr_age = latency
+
+    def age_duerr_single(self, chain):  # added in Oct 21
+        # Compute latency.
+        latency = chain.chain[-1].rt
+        for task, next_task in zip(chain.chain[:-1], chain.chain[1:]):
+            if (task.priority > next_task.priority
+                    or next_task.message or task.message):
+                part2 = task.rt
+            else:
+                part2 = 0
+            latency += task.period + part2
+        # Store result.
+        chain.duerr_age = latency
+
+        return latency
 
     ###
     # Kloda analysis from 'Latency analysis for data chains of real-time
