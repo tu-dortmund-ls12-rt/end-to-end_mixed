@@ -445,7 +445,9 @@ def main():
             ana.davare([ce])
 
         # Main: Generate the schedule # TODO do this with starmap
-        schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
+        with Pool(args.p) as p:
+            schedules = p.starmap(schedule_task_set, ce_ts)
+        # schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
 
         # match ce_ts with schedules:
         assert len(ce_ts) == len(schedules)
