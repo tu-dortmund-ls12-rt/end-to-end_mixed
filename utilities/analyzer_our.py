@@ -128,6 +128,9 @@ def max_reac_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_
 
     we distinguish between bcet and wcet task set and schedule.'''
 
+    if chain.length() == 0:  # corner case
+        return 0
+
     # Make analyzer
     ana = re_we_analyzer(schedule_bcet, schedule_wcet,
                          compute_hyper(task_set_wcet))
@@ -187,6 +190,9 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
     - schedule: the schedule of task_set (simulated beforehand)
 
     we distinguish between bcet and wcet task set and schedule.'''
+
+    if chain.length() == 0:  # corner case
+        return (0, 0)
 
     # Make analyzer
     ana = re_we_analyzer(schedule_bcet, schedule_wcet,

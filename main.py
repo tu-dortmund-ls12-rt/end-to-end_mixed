@@ -300,12 +300,16 @@ def our_mrt_mRda(lst, bcet):
 
 def let_mrt(lst_flat):
     '''analysis with LET communication policy'''
+    if lst_flat[0].length() == 0:
+        return 0
     return a_our.mrt_let(lst_flat[0], lst_flat[1])
 
 
 def let_mRda(lst_flat):
     '''analysis with LET communication policy
     Note: Returns tuple of mda and mrda result.'''
+    if lst_flat[0].length() == 0:
+        return (0, 0)
     return a_our.mda_let(lst_flat[0], lst_flat[1])
 
 
@@ -316,7 +320,7 @@ def analyze_mixed_mrt(lst_inter, scenario):
 
     e2e_latency = 0
 
-    for entry, sc in zip(lst_inter, scenario[1]):
+    for entry, sc in zip(lst_inter, scenario):
         if sc == 'impl':
             e2e_latency += entry[0].our_mrt[0]
         elif sc == 'let':
@@ -332,7 +336,7 @@ def analyze_mixed_mda(lst_inter, scenario):
 
     e2e_latency = 0
 
-    for entry, sc in zip(lst_inter, scenario[1]):
+    for entry, sc in zip(lst_inter, scenario):
         if sc == 'impl':
             e2e_latency += entry[0].our_mda[0]
         elif sc == 'let':
@@ -348,7 +352,7 @@ def analyze_mixed_mrda(lst_inter, scenario):
 
     e2e_latency = 0
 
-    for entry, sc in zip(lst_inter, scenario[1]):
+    for entry, sc in zip(lst_inter, scenario):
         if sc == 'impl':
             e2e_latency += entry[0].our_mrda[0]
         elif sc == 'let':
@@ -356,6 +360,20 @@ def analyze_mixed_mrda(lst_inter, scenario):
 
     return e2e_latency
 
+
+def divide_chain_4(chain, nmb):
+    '''divides chain into two parts, where the cut is at nmb/4-th.'''
+    cut_at = int(len(chain.chain)*nmb/4)
+    c1 = c.CauseEffectChain(1, chain.chain[:cut_at])
+    c2 = c.CauseEffectChain(2, chain.chain[cut_at:])
+    return (c1, c2)
+
+
+def cut_chain(ce_ts_sched_entry, nmb):
+    '''makes a list of two chains for one chain by cutting at nmb/4-th of the length'''
+    ce, ts, sched = ce_ts_sched_entry
+    ce1, ce2 = divide_chain_4(ce, nmb)
+    return ((ce1, ts, sched), (ce2, ts, sched))
 
 #################
 # Main function #
@@ -630,15 +648,23 @@ def main():
 
     if args.j == 12:
         '''mixed setup evaluation -- interconnected
+        - make interconnected chains with 4 ce each
+        - different scenarios for which local chains have implicit communication or LET
+        - apply our analysis
         Note:
         - for implicit we assume BCET/WCET = 0
+        Output: 'final_results' 
+        - list
+        - each entry describes results from one scenario
+        - the results consist of 3 lists covering the mrt, mda, mrda for each interconnected ce chain
         '''
 
         scenarios = [
-            [2, ['impl', 'let']],
-            [2, ['let', 'impl']],
-            [4, ['impl', 'let', 'impl', 'let']],
-            [4, ['let', 'impl', 'let', 'impl']],
+            ['impl', 'impl', 'impl', 'impl'],
+            ['let', 'impl', 'impl', 'impl'],
+            ['let', 'let', 'impl', 'impl'],
+            ['let', 'let', 'let', 'impl'],
+            ['let', 'let', 'let', 'let'],
         ]
 
         ###
@@ -650,23 +676,23 @@ def main():
                     + "_n=" + str(args.n)
                     + "_g=" + str(args.g) + ".npz")
         data = np.load(filename, allow_pickle=True)
-        ce_ts_sched = data.f.gen  # this one is used
 
+        ce_ts_sched = data.f.gen  # this one is used
         ce_ts_sched_flat = flatten(ce_ts_sched)  # this one is used
+
+        # breakpoint()
 
         ###
         # Make interconnected mixed chain
         ###
-        nmb_inter = 10
+        nmb_inter = 10  # number of chains for the analysis
 
-        ce_ts_sched_inter = []
+        # list of lists of ce chains
+        # (each list of ce chains is one interconnected chain)
+        ce_ts_sched_inter = [random.sample(
+            ce_ts_sched_flat, 4) for _ in range(nmb_inter)]
 
-        for nmb_sc, _ in scenarios:
-            ce_ts_sched_inter.append([random.sample(
-                ce_ts_sched_flat, nmb_sc) for _ in range(nmb_inter)])
-            # Note: each entry is a list of nmb_sc ce chains with corresponding task set and schedule
-
-        assert len(ce_ts_sched_inter) == len(scenarios)
+        assert len(ce_ts_sched_inter) == nmb_inter
 
         ###
         # Analyze
@@ -674,6 +700,7 @@ def main():
         print(time_now(), '= Analysis =')
 
         # == LET: MRT
+        # We do LET analysis to use that for the interconnected analysis
         print(time_now(), 'LET: MRT')
 
         # Get result
@@ -686,6 +713,7 @@ def main():
             entry[0].let_mrt = res
 
         # == LET: M(R)DA
+        # We do LET analysis to use that for the interconnected analysis
         print(time_now(), 'LET: M(R)DA')
 
         # Get result
@@ -698,27 +726,30 @@ def main():
             entry[0].let_mda = res[0]
             entry[0].let_mrda = res[1]
 
-        # == mixed scenario
+        # breakpoint()
+
+        # == Mixed scenario
         print(time_now(), 'Mixed Scenarios')
 
         final_results = []
 
-        for sc, entry_inter in zip(scenarios, ce_ts_sched_inter):
-            # Get result
+        for sc in scenarios:
+            # Get results
             with Pool(args.p) as p:
                 res_mix_mrt = p.starmap(analyze_mixed_mrt, zip(
-                    entry_inter, itertools.repeat(sc)))
+                    ce_ts_sched_inter, itertools.repeat(sc)))
                 res_mix_mda = p.starmap(analyze_mixed_mda, zip(
-                    entry_inter, itertools.repeat(sc)))
+                    ce_ts_sched_inter, itertools.repeat(sc)))
                 res_mix_mrda = p.starmap(analyze_mixed_mrda, zip(
-                    entry_inter, itertools.repeat(sc)))
+                    ce_ts_sched_inter, itertools.repeat(sc)))
 
-            # Set results
-            assert len(res_mix_mrt) == len(entry_inter)
-            assert len(res_mix_mda) == len(entry_inter)
-            assert len(res_mix_mrda) == len(entry_inter)
+            # Save results
+            assert len(res_mix_mrt) == len(ce_ts_sched_inter)
+            assert len(res_mix_mda) == len(ce_ts_sched_inter)
+            assert len(res_mix_mrda) == len(ce_ts_sched_inter)
 
-            final_results.append([res_mix_mrt, res_mix_mda, res_mix_mrda])
+            final_results.append(
+                [res_mix_mrt[:], res_mix_mda[:], res_mix_mrda[:]])
 
         # # DEBUG
         # this, this_ts, _ = ce_ts_sched_inter[0][0][1]
@@ -742,21 +773,156 @@ def main():
         '''mixed setup evaluation -- intraconnected
         '''
 
+        scenarios = [
+            0, 1, 2, 3, 4
+        ]  # 1 means 1/4-th LET, 2 means 2/4=1/2-th LET, ...
+
         ###
         # Load data
         ###
+        print(time_now(), "= Load data =")
+
+        filename = ("output/2implicit/ce_ts_sched_u="+str(args.u)
+                    + "_n=" + str(args.n)
+                    + "_g=" + str(args.g) + ".npz")
+        data = np.load(filename, allow_pickle=True)
+
+        ce_ts_sched = data.f.gen  # this one is used
+        ce_ts_sched_flat = flatten(ce_ts_sched)  # this one is used
 
         ###
         # Make intraconnected mixed chain
         ###
 
+        # == Choose those chains which are divideable by 4
+        ce_ts_sched_flat_div4 = [
+            entry for entry in ce_ts_sched_flat if len(entry[0].chain) % 4 == 0]
+
+        # == Randomly choose 100 from them
+        nmb_intra = 100
+
+        if len(ce_ts_sched_flat_div4) < nmb_intra:
+            print('chains required:', nmb_intra)
+            print('chains found:', len(ce_ts_sched_flat_div4))
+            print('continue with "c" ...')
+            breakpoint()
+            ce_ts_sched_intra = ce_ts_sched_flat_div4
+        else:  # choose 100 at random
+            ce_ts_sched_intra = random.sample(ce_ts_sched_flat_div4, nmb_intra)
+
+        # == Cut the chains
+        ce_ts_sched_intra_dict = dict()
+        for sc in scenarios:
+            ce_ts_sched_intra_dict[sc] = [
+                cut_chain(entry, sc) for entry in ce_ts_sched_intra]
+
+        # flatten the dict
+        # Note: we do this to apply the analysis
+        ce_ts_sched_intra_dict_flat = dict()
+        for sc in scenarios:
+            ce_ts_sched_intra_dict_flat[sc] = [
+                entry for intra_entry in ce_ts_sched_intra_dict[sc] for entry in intra_entry]
+
+        # breakpoint()
+
         ###
         # Analyze
         ###
 
+        final_results = []
+
+        for sc in scenarios:
+            print(time_now(), 'Scenario:', sc)
+
+            ce_ts_sched_analysis = ce_ts_sched_intra_dict[sc]
+            ce_ts_sched_flat_analysis = ce_ts_sched_intra_dict_flat[sc]
+
+            # breakpoint()
+
+            # == LET: MRT
+            # We do LET analysis to use that for the interconnected analysis
+            print(time_now(), 'LET: MRT')
+
+            # Get result
+            with Pool(args.p) as p:
+                res_let_mrt = p.map(let_mrt, ce_ts_sched_flat_analysis)
+
+            # Set results
+            assert len(res_let_mrt) == len(ce_ts_sched_flat_analysis)
+            for res, entry in zip(res_let_mrt, ce_ts_sched_flat_analysis):
+                entry[0].let_mrt = res
+
+            # == LET: M(R)DA
+            # We do LET analysis to use that for the interconnected analysis
+            print(time_now(), 'LET: M(R)DA')
+
+            # Get result
+            with Pool(args.p) as p:
+                res_let_mRda = p.map(let_mRda, ce_ts_sched_flat_analysis)
+
+            # Set results
+            assert len(res_let_mRda) == len(ce_ts_sched_flat_analysis)
+            for res, entry in zip(res_let_mRda, ce_ts_sched_flat_analysis):
+                entry[0].let_mda = res[0]
+                entry[0].let_mrda = res[1]
+
+            # == IMPL
+            print(time_now(), 'IMPLICIT')
+
+            bcet = 0
+
+            for ce, _, _ in ce_ts_sched_flat_analysis:
+                ce.our_mrt = dict()
+                ce.our_mda = dict()
+                ce.our_mrda = dict()
+
+            # breakpoint()
+
+            # Get result
+            analysis_impl = [([ce], ts, sched)
+                             for ce, ts, sched in ce_ts_sched_flat_analysis]
+            with Pool(args.p) as p:
+                res_our = p.starmap(our_mrt_mRda, zip(
+                    analysis_impl, itertools.repeat(bcet)))
+
+            # Set results
+            assert len(res_our) == len(analysis_impl)
+            for res, entry in zip(res_our, analysis_impl):
+                for idxx, ce in enumerate(entry[0]):
+                    ce.our_mrt[bcet] = res[0][idxx]
+                    ce.our_mda[bcet] = res[1][idxx]
+                    ce.our_mrda[bcet] = res[2][idxx]
+
+            # == mixed analysis
+            print(time_now(), 'MIXED')
+            queue = ['let', 'impl']
+            with Pool(args.p) as p:
+                res_mix_mrt = p.starmap(analyze_mixed_mrt, zip(
+                    ce_ts_sched_analysis, itertools.repeat(queue)))
+                res_mix_mda = p.starmap(analyze_mixed_mda, zip(
+                    ce_ts_sched_analysis, itertools.repeat(queue)))
+                res_mix_mrda = p.starmap(analyze_mixed_mrda, zip(
+                    ce_ts_sched_analysis, itertools.repeat(queue)))
+
+            # Save results
+            assert len(res_mix_mrt) == len(ce_ts_sched_analysis)
+            assert len(res_mix_mda) == len(ce_ts_sched_analysis)
+            assert len(res_mix_mrda) == len(ce_ts_sched_analysis)
+
+            final_results.append(
+                [res_mix_mrt[:], res_mix_mda[:], res_mix_mrda[:]])
+
+        # breakpoint()
+
         ###
         # Store data
         ###
+        print(time_now(), '= Store data =')
+        output_filename = ("output/4mixedintra/intra_res_u=" + str(args.u) +
+                           "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
+        np.savez(output_filename, result=final_results, scenarios=scenarios)
+
+        print(time_now(), '= Done =')
 
     if args.j == 0:
         """Comparison IMPLICIT COMMUNICATION.
