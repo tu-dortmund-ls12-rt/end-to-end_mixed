@@ -405,7 +405,7 @@ class Evaluation:
         ax1.tick_params(axis='y', rotation=0, labelsize=25)
         ax1.set_xlabel(xaxis_label, fontsize=40)
         plt.tight_layout()
-        plt.grid(axis='y', linestyle=(0, (5, 7)))
+        plt.grid(axis='y', markersize=1.2,  linestyle=(0, (5, 7)))
 
         # Save.
         plt.savefig(filename)
