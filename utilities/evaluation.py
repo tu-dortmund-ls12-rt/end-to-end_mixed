@@ -354,3 +354,116 @@ class Evaluation:
 
         # Save.
         plt.savefig(filename)
+
+    ###
+    # Plot functions added for this paper in Oct 21
+    ###
+
+    def boxplot_values(self, values, names, filename, xaxis_label="", ylabel=None):
+        """Boxplot: for evaluation
+
+        Shows the latency reduction [%] of several analyses compared to Davare.
+        """
+        assert len(names) == len(values)
+
+        if ylabel is None:
+            ylabel = self.ylabel
+
+        # Plotting.
+        # Blue box configuration:
+        boxprops = dict(linewidth=4, color='blue')
+        # Median line configuration:
+        medianprops = dict(linewidth=4, color='red')
+        whiskerprops = dict(linewidth=4, color='black')
+        capprops = dict(linewidth=4)
+        # Size parameters:
+        plt.rcParams.update({'font.size': 18})
+        plt.rcParams.update({'figure.subplot.top': 0.99})
+        plt.rcParams.update({'figure.subplot.bottom': 0.25})
+        plt.rcParams.update({'figure.subplot.left': 0.18})
+        plt.rcParams.update({'figure.subplot.right': 0.99})
+        plt.rcParams.update({'figure.figsize': [7, 4.8]})
+
+        # Draw plots:
+        fig1, ax1 = plt.subplots()
+        # ax1.set_ylim([self.ymin, self.ymax])
+        ax1.set_ylabel(ylabel, fontsize=25)
+        # ax1.hlines(self.hlines, 0, len(names) + 1, linestyles=(0, (5, 5)),
+        #            colors="lightgrey")
+        my_plot = ax1.boxplot(
+            values,
+            labels=names,
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
+        # ax1.set_yticks([0, 20, 40, 60, 80, 100])
+        # ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
+        ax1.tick_params(axis='x', rotation=0, labelsize=18)
+        ax1.tick_params(axis='y', rotation=0, labelsize=25)
+        ax1.set_xlabel(xaxis_label, fontsize=40)
+        plt.tight_layout()
+        plt.grid(axis='y', linestyle=(0, (5, 7)))
+
+        # Save.
+        plt.savefig(filename)
+
+    def boxplot_impl(self, chains, filename, keys, names, comp_key='davare', xaxis_label="", ylabel=None):
+        """Boxplot: implicit communication evaluation
+
+        Shows the latency reduction [%] of several analyses compared to Davare.
+        """
+        assert len(names) == len(keys)
+
+        if ylabel is None:
+            ylabel = self.ylabel
+
+        res = dict()
+
+        for key in keys:
+            res[key] = []
+            for chain in chains:
+                chv = vars(chain)
+                res[key].append((1-(chv[key]/chv[comp_key])) * 100)
+
+        # Plotting.
+        # Blue box configuration:
+        boxprops = dict(linewidth=4, color='blue')
+        # Median line configuration:
+        medianprops = dict(linewidth=4, color='red')
+        whiskerprops = dict(linewidth=4, color='black')
+        capprops = dict(linewidth=4)
+        # Size parameters:
+        plt.rcParams.update({'font.size': 18})
+        plt.rcParams.update({'figure.subplot.top': 0.99})
+        plt.rcParams.update({'figure.subplot.bottom': 0.25})
+        plt.rcParams.update({'figure.subplot.left': 0.18})
+        plt.rcParams.update({'figure.subplot.right': 0.99})
+        plt.rcParams.update({'figure.figsize': [7, 4.8]})
+
+        # Draw plots:
+        fig1, ax1 = plt.subplots()
+        ax1.set_ylim([self.ymin, self.ymax])
+        ax1.set_ylabel(ylabel, fontsize=25)
+        ax1.hlines(self.hlines, 0, len(keys) + 1, linestyles=(0, (5, 5)),
+                   colors="lightgrey")
+        my_plot = ax1.boxplot(
+            [res[key] for key in keys],
+            labels=names,
+            showfliers=False,
+            boxprops=boxprops,
+            medianprops=medianprops,
+            whiskerprops=whiskerprops,
+            capprops=capprops,
+            widths=0.6)
+        ax1.set_yticks([0, 20, 40, 60, 80, 100])
+        ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
+        ax1.tick_params(axis='x', rotation=0, labelsize=18)
+        ax1.tick_params(axis='y', rotation=0, labelsize=25)
+        ax1.set_xlabel(xaxis_label, fontsize=40)
+        plt.tight_layout()
+
+        # Save.
+        plt.savefig(filename)
