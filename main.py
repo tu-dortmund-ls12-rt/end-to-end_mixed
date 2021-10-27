@@ -692,10 +692,6 @@ def main():
                     ce.our_mda[bcet] = res[1][idxx]
                     ce.our_mrda[bcet] = res[2][idxx]
 
-        print(ce_ts_sched_flat[0][0].our_mrt,
-              ce_ts_sched_flat[0][0].our_mda,
-              ce_ts_sched_flat[0][0].our_mrda)
-
         # breakpoint()
 
         ###
