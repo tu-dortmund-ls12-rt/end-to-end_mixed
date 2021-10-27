@@ -352,11 +352,20 @@ def analyze_mixed_mrda(lst_inter, scenario):
 
     e2e_latency = 0
 
-    for entry, sc in zip(lst_inter, scenario):
+    # first entries
+    for entry, sc in zip(lst_inter[:-1], scenario[:-1]):
         if sc == 'impl':
-            e2e_latency += entry[0].our_mrda[0]
+            e2e_latency += entry[0].our_mda[0]
         elif sc == 'let':
-            e2e_latency += entry[0].let_mrda
+            e2e_latency += entry[0].let_mda
+
+    # last entry
+    sc = scenario[-1]
+    entry = lst_inter[-1]
+    if sc == 'impl':
+        e2e_latency += entry[0].our_mrda[0]
+    elif sc == 'let':
+        e2e_latency += entry[0].let_mrda
 
     return e2e_latency
 
@@ -444,7 +453,7 @@ def main():
         for ce, ts in ce_ts:
             ana.davare([ce])
 
-        # Main: Generate the schedule # TODO do this with starmap
+        # Main: Generate the schedule
         with Pool(args.p) as p:
             schedules = p.starmap(schedule_task_set, ce_ts)
         # schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
@@ -1010,7 +1019,7 @@ def main():
         # == Mixed local
         # MRT:
         ml_mrt_val = [
-            [(e/eimpl-1)*100 for e, eimpl in zip(entry[0], res_ml[0][0])] for entry in res_ml[1:]]
+            [(e/eimpl) for e, eimpl in zip(entry[0], res_ml[0][0])] for entry in res_ml[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1019,35 +1028,41 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             "output/5plots/mixed_local_mrt_u=" +
             str(args.u) + "_n=" + str(args.n) +
-            "_g=" + str(args.g) + ".pdf"
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
         )
 
-        # MRT:
+        # MDA:
         ml_mda_val = [
-            [(e/eimpl-1)*100 for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
+            [(e/eimpl) for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
         myeva.boxplot_values(
             list(ml_mda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_local_mrt_u=" +
+            "output/5plots/mixed_local_mda_u=" +
             str(args.u) + "_n=" + str(args.n) +
-            "_g=" + str(args.g) + ".pdf"
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
         )
 
-        # MRT:
+        # MRDA:
         ml_mrda_val = [
-            [(e/eimpl-1)*100 for e, eimpl in zip(entry[2], res_ml[0][2])] for entry in res_ml[1:]]
+            [(e/eimpl) for e, eimpl in zip(entry[2], res_ml[0][2])] for entry in res_ml[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
         myeva.boxplot_values(
             list(ml_mrda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_local_mrt_u=" +
+            "output/5plots/mixed_local_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) +
-            "_g=" + str(args.g) + ".pdf"
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
         )
 
 

@@ -2,8 +2,10 @@
 
 Source:
 https://github.com/tu-dortmund-ls12-rt/end-to-end"""
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')  # no UI backend
 
 
 class Evaluation:
@@ -359,7 +361,7 @@ class Evaluation:
     # Plot functions added for this paper in Oct 21
     ###
 
-    def boxplot_values(self, values, names, filename, xaxis_label="", ylabel=None):
+    def boxplot_values(self, values, names, filename, xaxis_label="", ylabel=None, ylimits=None, yticks=None, ylabels=None):
         """Boxplot: for evaluation
 
         Shows the latency reduction [%] of several analyses compared to Davare.
@@ -386,7 +388,8 @@ class Evaluation:
 
         # Draw plots:
         fig1, ax1 = plt.subplots()
-        # ax1.set_ylim([self.ymin, self.ymax])
+        if ylimits is not None:
+            ax1.set_ylim(ylimits)
         ax1.set_ylabel(ylabel, fontsize=25)
         # ax1.hlines(self.hlines, 0, len(names) + 1, linestyles=(0, (5, 5)),
         #            colors="lightgrey")
@@ -399,16 +402,19 @@ class Evaluation:
             whiskerprops=whiskerprops,
             capprops=capprops,
             widths=0.6)
-        # ax1.set_yticks([0, 20, 40, 60, 80, 100])
-        # ax1.set_yticklabels(("0", "20", "40", "60", "80", "100"))
+        if yticks is not None:
+            ax1.set_yticks(yticks)
+        if ylabels is not None:
+            ax1.set_yticklabels(ylabels)
         ax1.tick_params(axis='x', rotation=0, labelsize=18)
         ax1.tick_params(axis='y', rotation=0, labelsize=25)
         ax1.set_xlabel(xaxis_label, fontsize=40)
         plt.tight_layout()
-        plt.grid(axis='y', markersize=1.2,  linestyle=(0, (5, 7)))
+        plt.grid(axis='y',  linestyle=(0, (5, 7)))
 
         # Save.
         plt.savefig(filename)
+        # plt.savefig('test.png')
 
     def boxplot_impl(self, chains, filename, keys, names, comp_key='davare', xaxis_label="", ylabel=None):
         """Boxplot: implicit communication evaluation
