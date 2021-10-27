@@ -22,6 +22,7 @@ import utilities.evaluation as eva
 
 import time
 import sys
+import os
 
 import random  # randomization
 from multiprocessing import Pool  # multiprocessing
@@ -30,7 +31,9 @@ import itertools  # better performance
 
 debug_flag = True  # flag to have breakpoint() when errors occur
 
-random.seed(331)  # set seed for same results
+# set seed for same results
+random.seed(331)
+np.random.seed(331)
 
 
 ########################
@@ -146,7 +149,7 @@ def TDA(task_set):
     return True
 
 
-def schedule_task_set(task_set, ce_chains, print_status=True):
+def schedule_task_set(ce_chains, task_set, print_status=False):
     '''Return the schedule of some task_set.
     ce_chains is a list of ce_chains that will be computed later on.
     We need this to compute latency_upper_bound to determine the additional simulation time at the end.
@@ -198,6 +201,15 @@ def schedule_task_set(task_set, ce_chains, print_status=True):
     return schedule
 
 
+def schedule_taskset_as_list(ce_ts):
+    '''Schedule task set and return the result as list.'''
+    dict_res = schedule_task_set(ce_ts[0], ce_ts[1])
+    list_res = []
+    for task in ce_ts[1]:
+        list_res.append(dict_res.get(task))
+    return list_res
+
+
 def flatten(ce_ts_sched):
     '''Used to flatten the list ce_ts_sched'''
     ce_ts_sched_flat = [(ce, ts, sched)
@@ -213,6 +225,12 @@ def change_taskset_bcet(task_set, rat):
         task.bcet = math.ceil(rat * task.bcet)
     # Note: ceiling function makes sure there is never execution of 0
     return new_task_set
+
+
+def check_folder(name):
+    '''check if the folder exists, otherwise create it'''
+    if not os.path.exists(name):
+        os.makedirs(name)
 
 
 ###############################
@@ -280,7 +298,7 @@ def our_mrt_mRda(lst, bcet):
     ce_lst = lst[0]  # list of ce chains
     if bcet != 0:  # the dispatcher can only handle execution != 0
         rat_sched = schedule_task_set(
-            rat_ts, ce_lst, print_status=False)  # schedule with bcet
+            ce_lst, rat_ts, print_status=False)  # schedule with bcet
     else:
         rat_sched = a_our.execution_zero_schedule(rat_ts)
     sched = lst[2]  # schedule with wcet
@@ -445,6 +463,8 @@ def main():
         assert len(task_sets) == len(ce_chains)
         ce_ts = list(zip(ce_chains, task_sets))
 
+        # breakpoint()
+
         ###
         # Schedule generation
         ###
@@ -461,7 +481,29 @@ def main():
 
         # Main: Generate the schedule
         with Pool(args.p) as p:
-            schedules = p.starmap(schedule_task_set, ce_ts)
+            schedules_lst = p.map(schedule_taskset_as_list, ce_ts)
+        schedules_dict = []
+        for idxx, sched in enumerate(schedules_lst):
+            schedules_dict.append(dict())
+            for idxxx, tsk in enumerate(ce_ts[idxx][1]):
+                schedules_dict[idxx][tsk] = sched[idxxx][:]
+
+        schedules = schedules_dict
+
+        # breakpoint()
+
+        # for entry in ce_ts:
+        #     sched1 = schedule_task_set(*entry)
+        #     with Pool(1) as p:
+        #         sched2 = p.map(schedule_taskset_as_list, [entry])
+        #     sched2 = sched2[0]
+        #     # sched2 = schedule_taskset_as_list(entry)
+        #     sched3 = dict()
+        #     for t, s in zip(entry[1], sched2):
+        #         sched3[t] = s
+        #     breakpoint()
+        # with Pool(args.p) as p:
+        #     schedules = p.starmap(schedule_task_set, ce_ts)
         # schedules = [schedule_task_set(ts, ce) for ce, ts in ce_ts]
 
         # match ce_ts with schedules:
@@ -471,15 +513,19 @@ def main():
         # Note: Each entry is now a 3-tuple of list of cause-effect chain,
         # corresponding task set, and corresponding schedule
 
+        # breakpoint()
+
         ###
         # Save the results
         ###
         print("=Save data.=")
 
         try:
-            np.savez("output/1generation/ce_ts_sched_u="+str(args.u)
-                     + "_n=" + str(args.n)
-                     + "_g=" + str(args.g) + ".npz", gen=ce_ts_sched)
+            folder = "output/1generation/"
+            filename = ("ce_ts_sched_u="+str(args.u) +
+                        "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
+            check_folder(folder)
+            np.savez(folder + filename, gen=ce_ts_sched)
 
         except Exception as e:
             print(e)
@@ -657,9 +703,11 @@ def main():
         ###
         print(time_now(), '= Store data =')
 
-        output_filename = ("output/2implicit/ce_ts_sched_u=" + str(args.u) +
+        folder = "output/2implicit/"
+        output_filename = ("ce_ts_sched_u=" + str(args.u) +
                            "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
-        np.savez(output_filename, gen=ce_ts_sched)
+        check_folder(folder)
+        np.savez(folder+output_filename, gen=ce_ts_sched)
 
         print(time_now(), '= Done =')
 
@@ -780,9 +828,12 @@ def main():
         # Store data
         ###
         print(time_now(), '= Store data =')
-        output_filename = ("output/3mixedinter/inter_res_u=" + str(args.u) +
+        folder = "output/3mixedinter/"
+        output_filename = ("inter_res_u=" + str(args.u) +
                            "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
-        np.savez(output_filename, result=final_results, scenarios=scenarios)
+        check_folder(folder)
+        np.savez(folder+output_filename,
+                 result=final_results, scenarios=scenarios)
 
         print(time_now(), '= Done =')
 
@@ -935,9 +986,12 @@ def main():
         # Store data
         ###
         print(time_now(), '= Store data =')
-        output_filename = ("output/4mixedintra/intra_res_u=" + str(args.u) +
+        folder = "output/4mixedintra/"
+        output_filename = ("intra_res_u=" + str(args.u) +
                            "_n=" + str(args.n) + "_g=" + str(args.g) + ".npz")
-        np.savez(output_filename, result=final_results, scenarios=scenarios)
+        check_folder(folder)
+        np.savez(folder+output_filename,
+                 result=final_results, scenarios=scenarios)
 
         print(time_now(), '= Done =')
 
@@ -984,6 +1038,9 @@ def main():
 
         myeva = eva.Evaluation()
 
+        folder = "output/5plots/"
+        check_folder(folder)
+
         # == change our values from dict to direct values
         for ch, _, _ in ce_ts_sched_implicit_flat:
             ch.our0_mrt = ch.our_mrt[0.0]
@@ -1005,7 +1062,7 @@ def main():
         # MRT
         myeva.boxplot_impl(
             [ch for ch, _, _ in ce_ts_sched_implicit_flat],
-            "output/5plots/implicit_eval_mrt_u=" +
+            folder+"implicit_eval_mrt_u=" +
             str(args.u) + "_n=" + str(args.n) + "_g=" + str(args.g) + ".pdf",
             ['d19_mrt', 'kloda', 'our0_mrt', 'our1_mrt',
                 'our2_mrt', 'our3_mrt', 'g21_mrt'],
@@ -1015,7 +1072,7 @@ def main():
         # MRDA
         myeva.boxplot_impl(
             [ch for ch, _, _ in ce_ts_sched_implicit_flat],
-            "output/5plots/implicit_eval_mrda_u=" +
+            folder+"implicit_eval_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) + "_g=" + str(args.g) + ".pdf",
             ['d19_mrda', 'kloda', 'our0_mrda', 'our1_mrda',
                 'our2_mrda', 'our3_mrda', 'g21_mrda'],
@@ -1032,7 +1089,7 @@ def main():
         myeva.boxplot_values(
             list(ml_mrt_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_local_mrt_u=" +
+            folder+"mixed_local_mrt_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
@@ -1048,7 +1105,7 @@ def main():
         myeva.boxplot_values(
             list(ml_mda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_local_mda_u=" +
+            folder+"mixed_local_mda_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
@@ -1064,7 +1121,7 @@ def main():
         myeva.boxplot_values(
             list(ml_mrda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_local_mrda_u=" +
+            folder+"mixed_local_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
@@ -1081,7 +1138,7 @@ def main():
         myeva.boxplot_values(
             list(mg_mrt_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_global_mrt_u=" +
+            folder+"mixed_global_mrt_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
@@ -1097,7 +1154,7 @@ def main():
         myeva.boxplot_values(
             list(mg_mda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_global_mda_u=" +
+            folder+"mixed_global_mda_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
@@ -1113,7 +1170,7 @@ def main():
         myeva.boxplot_values(
             list(mg_mrda_val),
             ['1/4', '2/4', '3/4', '4/4'],
-            "output/5plots/mixed_global_mrda_u=" +
+            folder+"mixed_global_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
