@@ -350,6 +350,11 @@ def analyze_mixed_mrda(lst_inter, scenario):
     lst_inter is a list where each entry is a list of ce chain, task set and schedule
     '''
 
+    # if last chain is empty chain, remove it!
+    while lst_inter[-1][0].length() == 0:
+        lst_inter = lst_inter[:-1]
+        scenario = scenario[:-1]
+
     e2e_latency = 0
 
     # first entries
@@ -406,11 +411,12 @@ def main():
     # number of concurrent processes:
     parser.add_argument("-p", type=int, default=1)
 
-    # only for args.j==1:
     # name of the run:
     parser.add_argument("-n", type=int, default=-1)
     # number of task sets to generate:
     parser.add_argument("-r", type=int, default=5)
+    # number mixed ce chains to generate:
+    parser.add_argument("-m", type=int, default=20)
 
     args = parser.parse_args()
     del parser
@@ -696,7 +702,7 @@ def main():
         ###
         # Make interconnected mixed chain
         ###
-        nmb_inter = 10  # number of chains for the analysis
+        nmb_inter = args.m  # number of chains for the analysis
 
         # list of lists of ce chains
         # (each list of ce chains is one interconnected chain)
@@ -810,7 +816,7 @@ def main():
             entry for entry in ce_ts_sched_flat if len(entry[0].chain) % 4 == 0]
 
         # == Randomly choose 100 from them
-        nmb_intra = 100
+        nmb_intra = args.m
 
         if len(ce_ts_sched_flat_div4) < nmb_intra:
             print('chains required:', nmb_intra)
@@ -969,7 +975,7 @@ def main():
         res_mg = data_mg.f.result
         sce_mg = data_mg.f.scenarios
 
-        # breakpoint()
+        breakpoint()
 
         ###
         # Generate plots
@@ -1059,6 +1065,55 @@ def main():
             list(ml_mrda_val),
             ['1/4', '2/4', '3/4', '4/4'],
             "output/5plots/mixed_local_mrda_u=" +
+            str(args.u) + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # == Mixed global
+        # MRT:
+        mg_mrt_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[0], res_mg[0][0])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mrt_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            "output/5plots/mixed_global_mrt_u=" +
+            str(args.u) + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MDA:
+        mg_mda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[1], res_mg[0][1])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            "output/5plots/mixed_global_mda_u=" +
+            str(args.u) + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MRDA:
+        mg_mrda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[2], res_mg[0][2])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mrda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            "output/5plots/mixed_global_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
