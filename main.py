@@ -1025,8 +1025,6 @@ def main():
         res_mg = data_mg.f.result
         sce_mg = data_mg.f.scenarios
 
-        breakpoint()
-
         ###
         # Generate plots
         ###
