@@ -904,7 +904,7 @@ def main():
             # breakpoint()
 
             # == LET: MRT
-            # We do LET analysis to use that for the interconnected analysis
+            # We do LET analysis to use that for the mixed analysis
             print(time_now(), 'LET: MRT')
 
             # Get result
@@ -917,7 +917,7 @@ def main():
                 entry[0].let_mrt = res
 
             # == LET: M(R)DA
-            # We do LET analysis to use that for the interconnected analysis
+            # We do LET analysis to use that for the mixed analysis
             print(time_now(), 'LET: M(R)DA')
 
             # Get result
@@ -977,6 +977,18 @@ def main():
                 [res_mix_mrt[:], res_mix_mda[:], res_mix_mrda[:]])
 
         # breakpoint()
+
+        # # DEBUG
+        # for idxx in range(len(final_results[0][2])):
+        #     en_0 = final_results[0][2][idxx]
+        #     en_14 = final_results[1][2][idxx]
+        #     if en_0 > en_14:
+        #         c1 = ce_ts_sched_intra_dict[0][idxx]
+        #         c2 = ce_ts_sched_intra_dict[1][idxx]
+        #         breakpoint()
+
+        #         # analysis of c1[1][0]
+        #         our_mrt_mRda(c1, 0.0)
 
         ###
         # Store data
@@ -1093,6 +1105,10 @@ def main():
         # MDA:
         ml_mda_val = [
             [(e/eimpl) for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
+
+        # for entry in ml_mda_val[0]:
+        #     if entry < 1:
+        #         breakpoint()
 
         # worse than than the case with only implicit
         # breakpoint()

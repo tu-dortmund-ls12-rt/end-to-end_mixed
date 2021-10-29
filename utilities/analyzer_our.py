@@ -114,7 +114,7 @@ class re_we_analyzer():
         return self.wemax(last_tsk_wc, abstr[-1]) - self.remin(first_tsk_bc, 0)
 
     def incomplete_bound_reduced(self, abstr, last_tsk_wc, first_tsk_bc):
-        '''Second backward bound'''
+        '''REDUCED Second backward bound'''
         return self.wemax(last_tsk_wc, abstr[-2]) - self.remin(first_tsk_bc, 0)
 
 
@@ -268,8 +268,8 @@ def max_age_local(chain, task_set_wcet, schedule_wcet, task_set_bcet, schedule_b
                                task_set_bcet[index_chain[0]]) for abstr in complete_abstr] + [0]
     )
     max_length_incompl_red = max(
-        [ana.incomplete_bound(abstr, task_set_wcet[index_chain[-1]],
-                              task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr] + [0]
+        [ana.incomplete_bound_reduced(abstr, task_set_wcet[index_chain[-1]],
+                                      task_set_bcet[index_chain[0]]) for abstr in incomplete_abstr] + [0]
     )
     max_length_red = max(max_length_compl_red, max_length_incompl_red)
 
