@@ -21,20 +21,8 @@ fi
 
 date
 echo "=====5plots====="
-
-# g=0 r=100 with different utilization
 echo "-----automotive benchmark-----"
-for util in {50..90..10}
-do
-	echo "---utilization: $util---"
-  python3.7 main.py -j100 -u=$util -g0 -n=0 -p=$var
-done
-
-# g=1 r=100 with different utilization
+python3.7 main.py -j101 -g0 -n=0 -p=$var
 echo "-----uunifast benchmark-----"
-for util in {50..90..10}
-do
-	echo "---utilization: $util---"
-  python3.7 main.py -j100 -u=$util -g1 -n=0 -p=$var
-done
+python3.7 main.py -j101 -g1 -n=0 -p=$var
 echo "DONE"

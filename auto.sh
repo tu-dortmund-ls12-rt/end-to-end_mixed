@@ -25,3 +25,4 @@ fi
 ./auto_3mixedinter.sh $var
 ./auto_4mixedintra.sh $var
 ./auto_5plots.sh $var
+./auto_6plots_comb.sh $var

@@ -1085,6 +1085,16 @@ def main():
             ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21']
         )
 
+        # MDA
+        myeva.boxplot_impl(
+            [ch for ch, _, _ in ce_ts_sched_implicit_flat],
+            folder+"implicit_eval_mda_u=" +
+            str(args.u) + "_n=" + str(args.n) + "_g=" + str(args.g) + ".pdf",
+            ['kloda', 'our0_mda', 'our1_mda',
+                'our2_mda', 'our3_mda', 'g21_mda'],
+            ['K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+        )
+
         # == Mixed local
         # MRT:
         ml_mrt_val = [
@@ -1182,6 +1192,216 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_global_mrda_u=" +
             str(args.u) + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+    elif args.j == 101:
+        '''Evaluation -- global -- Combined utilizations'''
+        ###
+        # Load data
+        ###
+        print(time_now(), "= Load data =")
+
+        ce_ts_sched_implicit = []
+        ce_ts_sched_implicit_flat = []
+
+        res_ml = [
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+        ]
+        res_mg = [
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+            [[], [], []],
+        ]
+
+        for util in ['50.0', '60.0', '70.0', '80.0', '90.0']:
+
+            # == files from implicit communication evaluation
+            filename_implicit = ("output/2implicit/ce_ts_sched_u="+str(util)
+                                 + "_n=" + str(args.n)
+                                 + "_g=" + str(args.g) + ".npz")
+            data_implicit = np.load(filename_implicit, allow_pickle=True)
+
+            ce_ts_sched_implicit.extend(data_implicit.f.gen)
+            ce_ts_sched_implicit_flat.extend(flatten(data_implicit.f.gen))
+
+            # == files from mixed local evaluation
+            filename_ml = ("output/4mixedintra/intra_res_u="+str(util)
+                           + "_n=" + str(args.n)
+                           + "_g=" + str(args.g) + ".npz")
+            data_ml = np.load(filename_ml, allow_pickle=True)
+
+            for idx in range(len(res_ml)):
+                for idy in range(len(res_ml[idx])):
+                    res_ml[idx][idy].extend(data_ml.f.result[idx][idy])
+
+            # == files from mixed global evaluation
+            filename_mg = ("output/3mixedinter/inter_res_u="+str(util)
+                           + "_n=" + str(args.n)
+                           + "_g=" + str(args.g) + ".npz")
+            data_mg = np.load(filename_mg, allow_pickle=True)
+
+            for idx in range(len(res_mg)):
+                for idy in range(len(res_mg[idx])):
+                    res_mg[idx][idy].extend(data_mg.f.result[idx][idy])
+
+        ###
+        # Generate plots
+        ###
+        print("=Draw plots.=")
+
+        myeva = eva.Evaluation()
+
+        folder = "output/6plots_combined_util/"
+        check_folder(folder)
+
+        # == change our values from dict to direct values
+        for ch, _, _ in ce_ts_sched_implicit_flat:
+            ch.our0_mrt = ch.our_mrt[0.0]
+            ch.our1_mrt = ch.our_mrt[0.3]
+            ch.our2_mrt = ch.our_mrt[0.7]
+            ch.our3_mrt = ch.our_mrt[1.0]
+            #
+            ch.our0_mda = ch.our_mda[0.0]
+            ch.our1_mda = ch.our_mda[0.3]
+            ch.our2_mda = ch.our_mda[0.7]
+            ch.our3_mda = ch.our_mda[1.0]
+            #
+            ch.our0_mrda = ch.our_mrda[0.0]
+            ch.our1_mrda = ch.our_mrda[0.3]
+            ch.our2_mrda = ch.our_mrda[0.7]
+            ch.our3_mrda = ch.our_mrda[1.0]
+
+        # == implicit communication evaluation
+        # MRT
+        myeva.boxplot_impl(
+            [ch for ch, _, _ in ce_ts_sched_implicit_flat],
+            folder+"implicit_eval_mrt" + "_n=" +
+            str(args.n) + "_g=" + str(args.g) + ".pdf",
+            ['d19_mrt', 'kloda', 'our0_mrt', 'our1_mrt',
+                'our2_mrt', 'our3_mrt', 'g21_mrt'],
+            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+        )
+
+        # MRDA
+        myeva.boxplot_impl(
+            [ch for ch, _, _ in ce_ts_sched_implicit_flat],
+            folder+"implicit_eval_mrda" + "_n=" +
+            str(args.n) + "_g=" + str(args.g) + ".pdf",
+            ['d19_mrda', 'kloda', 'our0_mrda', 'our1_mrda',
+                'our2_mrda', 'our3_mrda', 'g21_mrda'],
+            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+        )
+
+        # MDA
+        myeva.boxplot_impl(
+            [ch for ch, _, _ in ce_ts_sched_implicit_flat],
+            folder+"implicit_eval_mda" + "_n=" +
+            str(args.n) + "_g=" + str(args.g) + ".pdf",
+            ['kloda', 'our0_mda', 'our1_mda',
+                'our2_mda', 'our3_mda', 'g21_mda'],
+            ['K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+        )
+
+        # == Mixed local
+        # MRT:
+        ml_mrt_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[0], res_ml[0][0])] for entry in res_ml[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(ml_mrt_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_local_mrt" + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MDA:
+        ml_mda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
+
+        # for entry in ml_mda_val[0]:
+        #     if entry < 1:
+        #         breakpoint()
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(ml_mda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_local_mda" + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MRDA:
+        ml_mrda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[2], res_ml[0][2])] for entry in res_ml[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(ml_mrda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_local_mrda" + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # == Mixed global
+        # MRT:
+        mg_mrt_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[0], res_mg[0][0])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mrt_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_global_mrt" + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MDA:
+        mg_mda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[1], res_mg[0][1])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_global_mda" + "_n=" + str(args.n) +
+            "_g=" + str(args.g) + ".pdf",
+            yticks=[1.0, 2.0, 3.0, 4.0],
+            ylimits=[0.8, 4.2]
+        )
+
+        # MRDA:
+        mg_mrda_val = [
+            [(e/eimpl) for e, eimpl in zip(entry[2], res_mg[0][2])] for entry in res_mg[1:]]
+
+        # worse than than the case with only implicit
+        # breakpoint()
+        myeva.boxplot_values(
+            list(mg_mrda_val),
+            ['1/4', '2/4', '3/4', '4/4'],
+            folder+"mixed_global_mrda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
             ylimits=[0.8, 4.2]
