@@ -1288,7 +1288,8 @@ def main():
             str(args.n) + "_g=" + str(args.g) + ".pdf",
             ['d19_mrt', 'kloda', 'our0_mrt', 'our1_mrt',
                 'our2_mrt', 'our3_mrt', 'g21_mrt'],
-            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
+            ylabel='Latency reduction (%)'
         )
 
         # MRDA
@@ -1298,7 +1299,8 @@ def main():
             str(args.n) + "_g=" + str(args.g) + ".pdf",
             ['d19_mrda', 'kloda', 'our0_mrda', 'our1_mrda',
                 'our2_mrda', 'our3_mrda', 'g21_mrda'],
-            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+            ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
+            ylabel='Latency reduction (%)'
         )
 
         # MDA
@@ -1308,13 +1310,14 @@ def main():
             str(args.n) + "_g=" + str(args.g) + ".pdf",
             ['kloda', 'our0_mda', 'our1_mda',
                 'our2_mda', 'our3_mda', 'g21_mda'],
-            ['K18', '0.0', '0.3', '0.7', '1.0', 'G21']
+            ['K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
+            ylabel='Latency reduction'
         )
 
         # == Mixed local
         # MRT:
         ml_mrt_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[0], res_ml[0][0])] for entry in res_ml[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[0], res_ml[0][0])] for entry in res_ml[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1324,12 +1327,13 @@ def main():
             folder+"mixed_local_mrt" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
         # MDA:
         ml_mda_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[1], res_ml[0][1])] for entry in res_ml[1:]]
 
         # for entry in ml_mda_val[0]:
         #     if entry < 1:
@@ -1343,12 +1347,13 @@ def main():
             folder+"mixed_local_mda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
         # MRDA:
         ml_mrda_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[2], res_ml[0][2])] for entry in res_ml[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[2], res_ml[0][2])] for entry in res_ml[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1358,13 +1363,14 @@ def main():
             folder+"mixed_local_mrda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
         # == Mixed global
         # MRT:
         mg_mrt_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[0], res_mg[0][0])] for entry in res_mg[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[0], res_mg[0][0])] for entry in res_mg[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1374,12 +1380,13 @@ def main():
             folder+"mixed_global_mrt" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
         # MDA:
         mg_mda_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[1], res_mg[0][1])] for entry in res_mg[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[1], res_mg[0][1])] for entry in res_mg[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1389,12 +1396,13 @@ def main():
             folder+"mixed_global_mda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
         # MRDA:
         mg_mrda_val = [
-            [(e/eimpl) for e, eimpl in zip(entry[2], res_mg[0][2])] for entry in res_mg[1:]]
+            [(e/eimpl)*100 for e, eimpl in zip(entry[2], res_mg[0][2])] for entry in res_mg[1:]]
 
         # worse than than the case with only implicit
         # breakpoint()
@@ -1404,7 +1412,8 @@ def main():
             folder+"mixed_global_mrda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
             yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2]
+            ylimits=[0.8, 4.2],
+            ylabel='Normalized Latency'
         )
 
 
