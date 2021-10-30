@@ -1289,7 +1289,7 @@ def main():
             ['d19_mrt', 'kloda', 'our0_mrt', 'our1_mrt',
                 'our2_mrt', 'our3_mrt', 'g21_mrt'],
             ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
-            ylabel='Latency reduction (%)'
+            ylabel='Latency Reduction (%)'
         )
 
         # MRDA
@@ -1300,7 +1300,7 @@ def main():
             ['d19_mrda', 'kloda', 'our0_mrda', 'our1_mrda',
                 'our2_mrda', 'our3_mrda', 'g21_mrda'],
             ['D19', 'K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
-            ylabel='Latency reduction (%)'
+            ylabel='Latency Reduction (%)'
         )
 
         # MDA
@@ -1311,7 +1311,7 @@ def main():
             ['kloda', 'our0_mda', 'our1_mda',
                 'our2_mda', 'our3_mda', 'g21_mda'],
             ['K18', '0.0', '0.3', '0.7', '1.0', 'G21'],
-            ylabel='Latency reduction'
+            ylabel='Latency Reduction (%)'
         )
 
         # == Mixed local
@@ -1326,9 +1326,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_local_mrt" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
         # MDA:
@@ -1346,9 +1346,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_local_mda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
         # MRDA:
@@ -1362,9 +1362,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_local_mrda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
         # == Mixed global
@@ -1379,9 +1379,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_global_mrt" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
         # MDA:
@@ -1395,9 +1395,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_global_mda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
         # MRDA:
@@ -1411,9 +1411,9 @@ def main():
             ['1/4', '2/4', '3/4', '4/4'],
             folder+"mixed_global_mrda" + "_n=" + str(args.n) +
             "_g=" + str(args.g) + ".pdf",
-            yticks=[1.0, 2.0, 3.0, 4.0],
-            ylimits=[0.8, 4.2],
-            ylabel='Normalized Latency'
+            yticks=[100.0, 200.0, 300.0, 400.0],
+            ylimits=[80.0, 420.0],
+            ylabel='Normalized Latency (%)'
         )
 
 
