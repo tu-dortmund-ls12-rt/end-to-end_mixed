@@ -4,6 +4,8 @@ The repository is used to reproduce the evaluation from
 
 for RTAS 2022.
 
+The output generated for the evaluation can be found here: https://tu-dortmund.sciebo.de/s/MkQSFTL8h48ZzHN
+
 
 TO BE UPDATED:
 # End-To-End Timing Analysis
