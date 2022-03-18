@@ -1,75 +1,8 @@
 #!/usr/bin/env python3
 
-class Task:
-    """A task."""
-
-    def __init__(self,
-                 release=None,
-                 deadline=None,
-                 execution=None,
-                 communication=None,
-                 **kwargs):
-        """Parameters that can be provided for different features:
-
-        - rel: release in ['sporadic', 'periodic']:
-            miniat, maxiat, period
-        - dl: deadline in ['arbitrary', 'constrained', 'implicit']:
-            dl
-        - ex: execution in ['bcwc']:
-            wcet, bcet
-        - comm: communication in ['implicit', 'LET']:
-            --
-        """
-        kwargs['tsk'] = self  # add pointer to task
-
-        # Release
-        if release is None:
-            pass
-        elif release in ('sporadic', 'spor', 's'):
-            self.rel = Sporadic(**kwargs)
-        elif release in ('periodic', 'per', 'p'):
-            self.rel = Periodic(**kwargs)
-        else:
-            raise ValueError(f'{release=} is no valid option.')
-
-        # Deadline
-        if deadline is None:
-            pass
-        elif deadline in ('arbitrary', 'arb', 'a'):
-            self.dl = ArbitraryDeadline(**kwargs)
-        elif deadline in ('constrained', 'constr', 'c'):
-            self.dl = ConstrainedDeadline(**kwargs)
-        elif deadline in ('implicit', 'impl', 'i'):
-            self.dl = ImplicitDeadline(**kwargs)
-        else:
-            raise ValueError(f'{deadline=} is no valid option.')
-
-        # Execution
-        if execution is None:
-            pass
-        elif execution in ('wcet', 'bcet', 'wc', 'bc', 'bcwc'):
-            self.ex = BCWCExecution(**kwargs)
-        else:
-            raise ValueError(f'{execution=} is no valid option.')
-
-        # Communication
-        if communication is not None:
-            self.comm = Communication(communication, **kwargs)
-
-    def features(self):
-        return self.__dict__
-
-    def print(self):
-        print(self)
-        feat_dict = self.features()
-        for feat in feat_dict.keys():
-            print(feat, feat_dict[feat])
-
-    def utilization(self):
-        """Task utilization."""
-        return (self.ex.wcet / self.rel.miniat)
-
-
+####################
+# Task Features.
+####################
 class TaskFeature:
     pass
 
@@ -194,12 +127,86 @@ class BCWCExecution(Execution):
 
 # Task Features: Communication Policy
 class Communication(TaskFeature):
-    def __init__(self, _type, **kwargs):
-        assert _type in ('implicit', 'LET')
-        self.type = _type
+    def __init__(self, communication, **kwargs):
+        assert communication in ('implicit', 'LET')
+        self.type = communication
 
     def __str__(self):
         return super().__str__() + f'\t type={self.type}'
+
+
+####################
+# Task.
+####################
+class Task:
+    """A task."""
+    features = {  # list of features that can be set.
+        'release': ['rel', {
+            **dict.fromkeys(['sporadic', 'spor', 's'], Sporadic),
+            **dict.fromkeys(['periodic', 'per', 'p'], Periodic)
+        }],
+        'deadline': ['dl', {
+            **dict.fromkeys(['arbitrary', 'arb', 'a'], ArbitraryDeadline),
+            **dict.fromkeys(['constrained', 'constr', 'c'], ConstrainedDeadline),
+            **dict.fromkeys(['implicit', 'impl', 'i'], ImplicitDeadline)
+        }],
+        'execution': ['ex', {
+            **dict.fromkeys(['wcet', 'bcet', 'wc', 'bc', 'bcwc'], BCWCExecution)
+        }],
+        'communication': ['comm', {
+            **dict.fromkeys(['implicit', 'LET'], Communication)
+        }]
+    }
+
+    def __init__(self,
+                 release=None,
+                 deadline=None,
+                 execution=None,
+                 communication=None,
+                 **kwargs):
+        """Parameters that can be provided for different features:
+
+        - rel: release in ['sporadic', 'periodic']:
+            miniat, maxiat, period
+        - dl: deadline in ['arbitrary', 'constrained', 'implicit']:
+            dl
+        - ex: execution in ['bcwc']:
+            wcet, bcet
+        - comm: communication in ['implicit', 'LET']:
+            --
+        """
+        kwargs['tsk'] = self  # add pointer to task
+
+        # Add features.
+        if release is not None:
+            self.add_feature('release', release, **kwargs)
+
+        if deadline is not None:
+            self.add_feature('deadline', deadline, **kwargs)
+
+        if execution is not None:
+            self.add_feature('execution', execution, **kwargs)
+
+        if communication is not None:
+            self.add_feature('communication', communication, **kwargs)
+
+    def add_feature(self, feature, argument, **kwargs):
+        feature_attribute, possible_arguments = self.features[feature]
+        assert argument in possible_arguments.keys()
+        kwargs[feature] = argument  # add feature and argument back
+
+        feature_class = possible_arguments[argument]
+        setattr(self, feature_attribute, feature_class(**kwargs))
+
+    def print(self):
+        print(self)
+        feat_dict = self.__dict__
+        for feat in feat_dict.keys():
+            print(feat, feat_dict[feat])
+
+    def utilization(self):
+        """Task utilization."""
+        return (self.ex.wcet / self.rel.miniat)
 
 
 if __name__ == '__main__':
@@ -219,6 +226,10 @@ if __name__ == '__main__':
 
     tsks['texec1'] = Task(execution='bcwc', bcet=10, wcet=20)
     tsks['texec2'] = Task(execution='wc', wcet=100)
+
+    # Add features
+    tsks['texec2'].add_feature('release', 'periodic', period=10)
+    tsks['texec2'].add_feature('communication', 'LET')
 
     for t in tsks.keys():
         print('\n', t)
