@@ -7,8 +7,8 @@ import numpy as np
 import random
 from scipy.stats import exponweib
 from collections import Counter
-from task import Task
-from taskset import TaskSet
+from tasks.task import Task
+from tasks.taskset import TaskSet
 
 
 ###
