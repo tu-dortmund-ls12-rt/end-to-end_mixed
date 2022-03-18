@@ -15,9 +15,9 @@ class Task:
             miniat, maxiat, period
         - dl: deadline in ['arbitrary', 'constrained', 'implicit']:
             dl
-        - execution in ['wcbc']:
+        - ex: execution in ['bcwc']:
             wcet, bcet
-        - communication in ['implicit', 'LET']:
+        - comm: communication in ['implicit', 'LET']:
             --
         """
         kwargs['tsk'] = self  # add pointer to task
@@ -65,6 +65,10 @@ class Task:
         for feat in feat_dict.keys():
             print(feat, feat_dict[feat])
 
+    def utilization(self):
+        """Task utilization."""
+        return (self.ex.wcet / self.rel.miniat)
+
 
 class TaskFeature:
     pass
@@ -75,7 +79,7 @@ class ReleasePattern(TaskFeature):
     type = None
 
     def __str__(self):
-        return super().__str__() + f' type={self.type}'
+        return super().__str__() + f'\t type={self.type}'
 
 
 class Sporadic(ReleasePattern):
@@ -121,7 +125,7 @@ class Deadline(TaskFeature):
     type = None
 
     def __str__(self):
-        return super().__str__() + f' type={self.type}'
+        return super().__str__() + f'\t type={self.type}'
 
 
 class ArbitraryDeadline(Deadline):
@@ -167,7 +171,7 @@ class Execution(TaskFeature):
     type = None
 
     def __str__(self):
-        return super().__str__() + f' type={self.type}'
+        return super().__str__() + f'\t type={self.type}'
 
 
 class BCWCExecution(Execution):
@@ -195,7 +199,7 @@ class Communication(TaskFeature):
         self.type = _type
 
     def __str__(self):
-        return super().__str__() + f' type={self.type}'
+        return super().__str__() + f'\t type={self.type}'
 
 
 if __name__ == '__main__':
