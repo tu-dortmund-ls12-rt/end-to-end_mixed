@@ -9,7 +9,20 @@ class Task:
                  execution=None,
                  communication=None,
                  **kwargs):
-        kwargs['tsk'] = self
+        """Parameters that can be provided for different features:
+
+        - rel: release in ['sporadic', 'periodic']:
+            miniat, maxiat, period
+        - dl: deadline in ['arbitrary', 'constrained', 'implicit']:
+            dl
+        - execution in ['wcbc']:
+            wcet, bcet
+        - communication in ['implicit', 'LET']:
+            --
+        """
+        kwargs['tsk'] = self  # add pointer to task
+
+        # Release
         if release is None:
             pass
         elif release in ('sporadic', 'spor', 's'):
@@ -19,6 +32,7 @@ class Task:
         else:
             raise ValueError(f'{release=} is no valid option.')
 
+        # Deadline
         if deadline is None:
             pass
         elif deadline in ('arbitrary', 'arb', 'a'):
@@ -30,6 +44,7 @@ class Task:
         else:
             raise ValueError(f'{deadline=} is no valid option.')
 
+        # Execution
         if execution is None:
             pass
         elif execution in ('wcet', 'bcet', 'wc', 'bc', 'bcwc'):
@@ -37,6 +52,7 @@ class Task:
         else:
             raise ValueError(f'{execution=} is no valid option.')
 
+        # Communication
         if communication is not None:
             self.comm = Communication(communication, **kwargs)
 
@@ -74,11 +90,11 @@ class Sporadic(ReleasePattern):
             assert maxiat >= miniat
 
         # this
-        self.max = maxiat
-        self.min = miniat
+        self.maxiat = maxiat
+        self.miniat = miniat
 
     def __str__(self):
-        return super().__str__() + f' min={self.min}, max={self.max}'
+        return super().__str__() + f' miniat={self.miniat}, maxiat={self.maxiat}'
 
 
 class Periodic(Sporadic):
@@ -123,8 +139,8 @@ class ConstrainedDeadline(ArbitraryDeadline):
     type = 'constrained'
 
     def __init__(self, dl=None, tsk=None, **kwargs):
-        if tsk is not None and hasattr(tsk, 'rel') and hasattr(tsk.rel, 'min'):
-            assert tsk.rel.min >= dl
+        if tsk is not None and hasattr(tsk, 'rel') and hasattr(tsk.rel, 'miniat'):
+            assert tsk.rel.miniat >= dl
 
         # super
         super().__init__(dl=dl, **kwargs)
@@ -141,7 +157,7 @@ class ImplicitDeadline(ConstrainedDeadline):
     @property
     def dl(self):
         """Deadline is always the minimum inter-arrival time of a task."""
-        return self.base_tsk.rel.min
+        return self.base_tsk.rel.miniat
 
 
 # Task Features: Execution Behavior
@@ -174,9 +190,9 @@ class BCWCExecution(Execution):
 
 # Task Features: Communication Policy
 class Communication(TaskFeature):
-    def __init__(self, type, **kwargs):
-        assert type in ('implicit', 'LET')
-        self.type = type
+    def __init__(self, _type, **kwargs):
+        assert _type in ('implicit', 'LET')
+        self.type = _type
 
     def __str__(self):
         return super().__str__() + f' type={self.type}'
