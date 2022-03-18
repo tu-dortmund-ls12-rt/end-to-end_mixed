@@ -8,6 +8,7 @@ import random
 from scipy.stats import exponweib
 from collections import Counter
 from task import Task
+from taskset import TaskSet
 
 
 ###
@@ -24,6 +25,13 @@ class task(dict):
         dict.__setitem__(self, "execution", float(execution))
         dict.__setitem__(self, "period", float(period))
         dict.__setitem__(self, "deadline", float(deadline))
+
+
+def task_transormation(tsk):
+    """Transform task for creation to our task model for analysis."""
+    return Task(release='periodic', period=tsk['period'],
+                execution='wcet', wcet=tsk['execution'],
+                deadline='implicit')  # make implicit
 
 
 def sample_runnable_acet(period, amount=1, scalingFlag=False):
@@ -204,20 +212,18 @@ def gen_taskset(
 
     periods = [1, 2, 5, 10, 20, 50, 100, 200, 1000]
 
-    taskset = []
     # Create runnable periods.
     dist = stats.rv_discrete(name='periods',
                              values=(periods, period_pdf))
     runnables = 30000  # number of runnables
-
-    sys_runnable_periods = dist.rvs(size=runnables)  # all periods
+    sys_runnable_periods = dist.rvs(size=runnables)  # list all periods
 
     # Count runnables.
     amount_sys_runnables = dict(Counter(sys_runnable_periods))
-
     assert sum(amount_sys_runnables.values()) == runnables
 
     # Build tasks from runnables.
+    taskset = []
     for per in periods:
         # Random WCETs.
         wcets = sample_runnable_acet(per, amount_sys_runnables[per], scaling_flag)
@@ -245,6 +251,9 @@ def gen_taskset(
             util -= new_tsk['execution'] / old_tsk['period']
         else:
             break
+
+    # Transform to our taskset model
+    this_taskset = TaskSet(*[task_transormation(tsk) for tsk in this_taskset])
 
     return this_taskset
 

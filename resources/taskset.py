@@ -69,14 +69,35 @@ class TaskSet:
             tsk.print()
 
 
+def transform(taskset, precision=10000000):
+    """"Multiplies the following values for each task with precision and makes integer.
+    (Important for analyses with hyperperiod)."""
+    transform_arguments = {
+        'rel': ['miniat', 'maxiat', 'period', 'phase'],
+        'dl': ['dl'],
+        'ex': ['bcet', 'wcet'],
+        'comm': []
+    }
+    for tsk in taskset:
+        for targ in transform_arguments:
+            if targ in tsk.__dict__.keys():
+                feature = getattr(tsk, targ)
+                for targarg in transform_arguments[targ]:
+                    if targarg in feature.__dict__.keys():
+                        old_val = getattr(feature, targarg)
+                        if old_val is not None:
+                            new_val = int(old_val * precision)
+                            setattr(feature, targarg, new_val)
+
+
 if __name__ == '__main__':
     """Debug."""
     from task import Task
 
     tset = (
-        Task(release='periodic', period=10, execution='bcwc', wcet=1, communication='LET'),
-        Task(release='periodic', period=20, execution='bcwc', wcet=1, communication='implicit'),
-        Task(release='periodic', period=50, execution='bcwc', wcet=1, communication='LET')
+        Task(release='periodic', period=10, execution='bcwc', wcet=1 / 3, communication='LET'),
+        Task(release='periodic', period=20, execution='bcwc', wcet=1 / 2, communication='implicit'),
+        Task(release='periodic', period=50, execution='bcwc', wcet=1 / 7, communication='LET')
     )
 
     ts = TaskSet(*tset)

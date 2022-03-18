@@ -37,7 +37,7 @@ class Sporadic(ReleasePattern):
 class Periodic(Sporadic):
     type = 'periodic'
 
-    def __init__(self, period=None, **kwargs):
+    def __init__(self, period=None, phase=None, **kwargs):
         if period is not None:
             assert period > 0
 
@@ -48,9 +48,10 @@ class Periodic(Sporadic):
 
         # this
         self.period = period
+        self.phase = phase
 
     def __str__(self):
-        return super().__str__() + f' period={self.period}'
+        return super().__str__() + f' period={self.period}, phase={self.phase}'
 
 
 # Task Features: Deadline
