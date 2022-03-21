@@ -38,6 +38,38 @@ def cut_based(chain, LET=None, impl=None):
     return result
 
 
+def prin_based(chain):
+    """Our principle based analysis."""
+    # TODO check if periodic or sporadic and apply the corresponding analysis
+    return None
+
+
+def _prin_based_periodic(chain):
+    """Our principle based analysis for periodic tasks."""
+    # TODO TBD
+    return None
+
+
+def _prin_based_sporadic(chain):
+    """Our principle based analysis for sporadic tasks."""
+    # TODO ensure that each communication type is LET or impl (use assert and if __debug__)
+    # TODO ensure that all tasks have wcrts set, otherwise set them
+    result = 0
+    for idx, tsk in enumerate(chain):
+        # inter-arrival time part
+        result += tsk.rel.maxiat
+        # additional part
+        if tsk.comm.type == 'LET':
+            result += tsk.dl.dl
+        elif (idx != len(chain) - 1 and  # not the last task
+              chain[idx + 1].comm.type == 'impl' and  # both are implicit
+              chain.base_ts.higher_prio(tsk, chain[idx + 1])):  # next has lower priority
+            result += 0
+        else:
+            result += chain.base_ts.wcrts[tsk]  # add wcrt of tsk
+    return result
+
+
 if __name__ == '__main__':
     """Debugging."""
     ce = CEChain(

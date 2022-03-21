@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
+import math
+
 
 class TaskSet:
     """A set of Task-Objects."""
+
+    # Assumption: Task set ordered by priority
 
     def __init__(self, *args):
         """Input: Task-Objects"""
@@ -24,6 +28,14 @@ class TaskSet:
 
     def append(self, obj):
         self._lst.append(obj)
+
+    def prio(self, tsk):
+        """Priority of a task"""
+        return self._lst.index(tsk)
+
+    def higher_prio(self, tsk1, tsk2):
+        """tsk1 has higher prio than tsk2."""
+        return self.prio(tsk1) < self.prio(tsk2)
 
     def utilization(self):
         return sum(tsk.utilization() for tsk in self)
@@ -68,6 +80,12 @@ class TaskSet:
         for tsk in self:
             tsk.print()
 
+    def compute_wcrts(self):
+        """Compute wcrts by TDA."""
+        self.wcrts = dict()
+        for idx in range(len(self._lst)):
+            self.wcrts[self._lst[idx]] = tda(self._lst[idx], self._lst[:idx])
+
 
 def transform(taskset, precision=10000000):
     """"Multiplies the following values for each task with precision and makes integer.
@@ -88,6 +106,30 @@ def transform(taskset, precision=10000000):
                         if old_val is not None:
                             new_val = int(old_val * precision)
                             setattr(feature, targarg, new_val)
+
+
+def tda(tsk, hp_tsks):
+    """Implementation of TDA to calculate worst-case response time.
+    Source:
+    https://github.com/kuanhsunchen/MissRateSimulator/blob/master/TDA.py
+    """
+    c = tsk.ex.wcet  # WCET
+    r = c  # WCRT
+    while True:
+        i = 0  # interference
+        for itsk in hp_tsks:
+            i = i + _workload(itsk.rel.miniat, itsk.ex.wcet, r)
+        if r < i + c:
+            r = i + c
+        else:
+            return r
+
+
+def _workload(period, wcet, time):
+    """Workload function for TDA.
+    Help function for tda().
+    """
+    return wcet * math.ceil(float(time) / period)
 
 
 if __name__ == '__main__':
