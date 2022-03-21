@@ -4,43 +4,65 @@
 # Task Features.
 ####################
 class TaskFeature:
-    pass
+    _features = []
+
+    def __str__(self):
+        ret_str = self.__repr__() + ':\t'
+        for feat in self._features:
+            ret_str += f'{feat}={getattr(self, feat)}, '
+        return ret_str
 
 
 # Task Features: Release Pattern
 class ReleasePattern(TaskFeature):
+    _features = TaskFeature._features + ['type']
     type = None
 
-    def __str__(self):
-        return super().__str__() + f'\t type={self.type}'
+    def __init__(self):
+        self._features
 
 
 class Sporadic(ReleasePattern):
     type = 'sporadic'
+    _features = ReleasePattern._features + ['miniat', 'maxiat']
 
     def __init__(self, maxiat=None, miniat=None, **kwargs):
-        if maxiat is not None:
-            assert maxiat >= 0
-        if miniat is not None:
-            assert miniat > 0
-        if maxiat is not None and miniat is not None:
-            assert maxiat >= miniat
-
         # this
         self.maxiat = maxiat
         self.miniat = miniat
 
-    def __str__(self):
-        return super().__str__() + f' miniat={self.miniat}, maxiat={self.maxiat}'
+    @property
+    def maxiat(self):
+        return self._maxiat
+
+    @maxiat.setter
+    def maxiat(self, value):
+        if value is not None:
+            if value < 0:
+                raise ValueError(f'Non-negative value expected. Received {value=}.')
+            if hasattr(self, '_miniat') and self.miniat is not None and value < self._miniat:
+                raise ValueError(f'miniat <= value expected. Received {self._miniat=} > {value=}.')
+        self._maxiat = value
+
+    @property
+    def miniat(self):
+        return self._miniat
+
+    @miniat.setter
+    def miniat(self, value):
+        if value is not None:
+            if value < 0:
+                raise ValueError(f'Non-negative value expected. Received {value=}.')
+            if hasattr(self, '_maxiat') and self._maxiat is not None and value > self._maxiat:
+                raise ValueError(f'value <= maxiat expected. Received {value=} > {self._maxiat=}.')
+        self._miniat = value
 
 
 class Periodic(Sporadic):
     type = 'periodic'
+    _features = Sporadic._features + ['period', 'phase']
 
     def __init__(self, period=None, phase=None, **kwargs):
-        if period is not None:
-            assert period > 0
-
         # super
         kwargs['miniat'] = period
         kwargs['maxiat'] = period
@@ -50,52 +72,74 @@ class Periodic(Sporadic):
         self.period = period
         self.phase = phase
 
-    def __str__(self):
-        return super().__str__() + f' period={self.period}, phase={self.phase}'
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, value):
+        if value is not None and value < 0:
+            raise ValueError(f'Non-negative value expected. Received {value=}.')
+        self._period = value
 
 
 # Task Features: Deadline
 class Deadline(TaskFeature):
     type = None
-
-    def __str__(self):
-        return super().__str__() + f'\t type={self.type}'
+    _features = TaskFeature._features + ['type']
 
 
 class ArbitraryDeadline(Deadline):
     type = 'arbitrary'
+    _features = Deadline._features + ['dl']
 
     def __init__(self, dl=None, **kwargs):
         # this
         self.dl = dl
-
-    def __str__(self):
-        return super().__str__() + f' dl={self.dl}'
 
 
 class ConstrainedDeadline(ArbitraryDeadline):
     type = 'constrained'
 
     def __init__(self, dl=None, tsk=None, **kwargs):
-        if tsk is not None and hasattr(tsk, 'rel') and hasattr(tsk.rel, 'miniat'):
-            assert tsk.rel.miniat >= dl
-
+        self._base_tsk = tsk  # base task
         # super
-        super().__init__(dl=dl, **kwargs)
-        # this
-        pass
+        super().__init__(dl=dl, **kwargs)  # set deadline
+
+    @property
+    def dl(self):
+        return self._dl
+
+    @dl.setter
+    def dl(self, value):
+        if (hasattr(self, '_base_tsk') and self._base_tsk is not None and value is not None
+                and hasattr(self._base_tsk, 'rel')
+                and hasattr(self._base_tsk.rel, 'miniat')):
+            if self._base_tsk.rel.miniat < value:
+                raise ValueError(f'Expected value <= miniat. Received {value=} > {self._base_tsk.rel.miniat=}.')
+        self._dl = value
 
 
 class ImplicitDeadline(ConstrainedDeadline):
     type = 'implicit'
 
-    def __init__(self, tsk=None, **kwargs):
-        self.base_tsk = tsk
-
     @property
     def dl(self):
         """Deadline is always the minimum inter-arrival time of a task."""
-        return self.base_tsk.rel.miniat
+        if (hasattr(self, '_base_tsk')
+                and hasattr(self._base_tsk, 'rel')
+                and hasattr(self._base_tsk.rel, 'miniat')):
+            return self._base_tsk.rel.miniat
+        else:
+            return None
+
+    @dl.setter
+    def dl(self, value):
+        """No setting allowed, just a quick check."""
+        if value is not None and self.dl is not None and self.dl != value:
+            raise ValueError(f'DL=miniat expected for implicit deadline tasks. Want to set {self.dl=} to {value=}?')
+        else:
+            pass
 
 
 # Task Features: Execution Behavior
@@ -103,37 +147,64 @@ class ImplicitDeadline(ConstrainedDeadline):
 # TODO this place can also be used to implement tasks with probabilistic execution behavior
 class Execution(TaskFeature):
     type = None
-
-    def __str__(self):
-        return super().__str__() + f'\t type={self.type}'
+    _features = TaskFeature._features + ['type']
 
 
 class BCWCExecution(Execution):
     type = 'bcwc'
+    _features = Execution._features + ['bcet', 'wcet']
 
     def __init__(self, bcet=None, wcet=None, **kwargs):
-        if bcet is not None:
-            assert bcet >= 0
-        if wcet is not None:
-            assert wcet >= 0
-        if bcet is not None and wcet is not None:
-            assert bcet <= wcet
-
         self.bcet = bcet
         self.wcet = wcet
 
-    def __str__(self):
-        return super().__str__() + f' bcet={self.bcet}, wcet={self.wcet}'
+    @property
+    def bcet(self):
+        return self._bcet
+
+    @bcet.setter
+    def bcet(self, value):
+        if value is not None:
+            if value < 0:
+                raise ValueError(f'Non-negative value expected. Received {value=}.')
+            if hasattr(self, 'wcet') and self.wcet is not None:
+                if self.wcet < value:
+                    raise ValueError(f'wcet>=value expected. Received: {self.wcet=}<{value=}.')
+        self._bcet = value
+
+    @property
+    def wcet(self):
+        return self._bcet
+
+    @wcet.setter
+    def wcet(self, value):
+        if value is not None:
+            if value < 0:
+                raise ValueError(f'Non-negative value expected. Received {value=}.')
+            if hasattr(self, 'bcet') and self.bcet is not None:
+                if self.bcet > value:
+                    raise ValueError(f'bcet<=value expected. Received: {self.bcet=}>{value=}.')
+        self._wcet = value
 
 
 # Task Features: Communication Policy
 class Communication(TaskFeature):
+    _features = TaskFeature._features + ['type']
+    _comm_possibilities = ('implicit', 'LET')
+
     def __init__(self, communication, **kwargs):
-        assert communication in ('implicit', 'LET')
         self.type = communication
 
-    def __str__(self):
-        return super().__str__() + f'\t type={self.type}'
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        if value is not None:
+            if value not in self._comm_possibilities:
+                raise ValueError(f'{value} is not in {self._comm_possibilities}.')
+        self._type = value
 
 
 ####################
@@ -193,13 +264,15 @@ class Task:
 
     def add_feature(self, feature, argument, **kwargs):
         feature_attribute, possible_arguments = self.features[feature]
-        assert argument in possible_arguments.keys()
+        if argument not in possible_arguments.keys():
+            raise ValueError(f'{argument} is not a possible argument.')
         kwargs[feature] = argument  # add feature and argument back
 
         feature_class = possible_arguments[argument]
         setattr(self, feature_attribute, feature_class(**kwargs))
 
     def print(self):
+        """Quick print of all features for debugging."""
         print(self)
         feat_dict = self.__dict__
         for feat in feat_dict.keys():
