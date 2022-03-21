@@ -18,9 +18,6 @@ class ReleasePattern(TaskFeature):
     _features = TaskFeature._features + ['type']
     type = None
 
-    def __init__(self):
-        self._features
-
 
 class Sporadic(ReleasePattern):
     type = 'sporadic'
