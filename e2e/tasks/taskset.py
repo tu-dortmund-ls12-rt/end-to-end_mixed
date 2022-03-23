@@ -86,6 +86,14 @@ class TaskSet:
         for idx in range(len(self._lst)):
             self.wcrts[self._lst[idx]] = tda(self._lst[idx], self._lst[:idx])
 
+    def hyperperiod(self):
+        """Task set hyperperiod."""
+        return math.lcm(*[tsk.rel.period for tsk in self._lst])
+
+    def max_phase(self):
+        """Maximal phase of the task set."""
+        return max(*[tsk.rel.phase for tsk in self._lst])
+
 
 def transform(taskset, precision=10000000):
     """"Multiplies the following values for each task with precision and makes integer.
@@ -134,12 +142,12 @@ def _workload(period, wcet, time):
 
 if __name__ == '__main__':
     """Debug."""
-    from task import Task
+    from tasks.task import Task
 
     tset = (
-        Task(release='periodic', period=10, execution='bcwc', wcet=1 / 3, communication='LET'),
-        Task(release='periodic', period=20, execution='bcwc', wcet=1 / 2, communication='implicit'),
-        Task(release='periodic', period=50, execution='bcwc', wcet=1 / 7, communication='LET')
+        Task(release='periodic', period=10, phase=1, execution='bcwc', wcet=1 / 3, communication='LET'),
+        Task(release='periodic', period=20, phase=10, execution='bcwc', wcet=1 / 2, communication='implicit'),
+        Task(release='periodic', period=50, phase=5, execution='bcwc', wcet=1 / 7, communication='LET')
     )
 
     ts = TaskSet(*tset)
