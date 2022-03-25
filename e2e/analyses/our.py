@@ -2,6 +2,7 @@
 from cechains.chain import CEChain
 from tasks.task import Task
 import math
+import analyses.other as ana_other
 
 
 def _cut_chain(ch):
@@ -19,7 +20,14 @@ def _cut_chain(ch):
 def cut_based(chain, LET=None, impl=None):
     """Our cutting theorem based analysis."""
     base_analyses = {  # TODO add other analyses
-        'duerr': None,
+        'implicit': {
+            'periodic': ana_other.kloda,
+            'sporadic': ana_other.duerr,
+        },
+        'LET': {
+            'periodic': ana_other.LET_per,
+            'sporadic': ana_other.LET_spor
+        }
     }  # Base analyses that can be utilized for LET and implicit communication analysis
 
     # cut chain
@@ -74,7 +82,7 @@ def _prin_based_periodic(chain):
             relvar = _next_release_job_chain(relvar, this_tsk, next_tsk, chain.base_ts)
         # actuation event at zprime
         if chain[-1].comm.type == 'impl':
-            zprimevar = relvar + chain.base_ts.wcrt[chain[-1]]
+            zprimevar = relvar + chain.base_ts.wcrts[chain[-1]]
         elif chain[-1].comm.type == 'LET':
             zprimevar = relvar + chain[-1].dl.dl
         lengths.append(zprimevar - zvar)
@@ -105,7 +113,7 @@ def _next_release_job_chain(curr_rel, curr_tsk, nxt_tsk, task_set):
 
 def _release_after(time, tsk):
     """Next release of tsk at or after 'time' for periodic tasks."""
-    return math.ceil((time - tsk.rel.phase) / tsk.rel.period) * tsk.rel.period
+    return tsk.rel.phase + math.ceil((time - tsk.rel.phase) / tsk.rel.period) * tsk.rel.period
 
 
 def _prin_based_sporadic(chain):
