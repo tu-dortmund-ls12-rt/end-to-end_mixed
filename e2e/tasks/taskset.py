@@ -92,7 +92,7 @@ class TaskSet:
 
     def max_phase(self):
         """Maximal phase of the task set."""
-        return max(*[tsk.rel.phase for tsk in self._lst])
+        return max([tsk.rel.phase for tsk in self._lst])
 
 
 def transform(taskset, precision=10000000):
