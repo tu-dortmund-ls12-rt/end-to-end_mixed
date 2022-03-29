@@ -171,7 +171,7 @@ class BCWCExecution(Execution):
 
     @property
     def wcet(self):
-        return self._bcet
+        return self._wcet
 
     @wcet.setter
     def wcet(self, value):
