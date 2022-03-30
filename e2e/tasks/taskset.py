@@ -94,6 +94,10 @@ class TaskSet:
         """Maximal phase of the task set."""
         return max([tsk.rel.phase for tsk in self._lst])
 
+    def sort_dm(self):
+        """Sort by deadline."""
+        self._lst.sort(key=lambda x: x.dl.dl)
+
 
 def transform(taskset, precision=10000000):
     """"Multiplies the following values for each task with precision and makes integer.
