@@ -99,21 +99,30 @@ def transform(taskset, precision=10000000):
     """"Multiplies the following values for each task with precision and makes integer.
     (Important for analyses with hyperperiod)."""
     transform_arguments = {
-        'rel': ['miniat', 'maxiat', 'period', 'phase'],
+        'rel': ['maxiat', 'miniat', 'period', 'phase'],
         'dl': ['dl'],
-        'ex': ['bcet', 'wcet'],
+        'ex': ['wcet', 'bcet'],
         'comm': []
     }
+
     for tsk in taskset:
+        # get all relevant values:
+        tsk_vals = dict()
         for targ in transform_arguments:
-            if targ in tsk.__dict__.keys():
-                feature = getattr(tsk, targ)
+            if hasattr(tsk, targ):
+                tsk_feat = getattr(tsk, targ)
+                tsk_vals[targ] = dict()
                 for targarg in transform_arguments[targ]:
-                    if targarg in feature.__dict__.keys():
-                        old_val = getattr(feature, targarg)
-                        if old_val is not None:
-                            new_val = int(old_val * precision)
-                            setattr(feature, targarg, new_val)
+                    if hasattr(tsk_feat, targarg):
+                        tsk_vals[targ][targarg] = getattr(tsk_feat, targarg)
+
+        # Transform and set relevant values
+        for targ in tsk_vals:
+            feat = getattr(tsk, targ)
+            for targarg in tsk_vals[targ]:
+                if tsk_vals[targ][targarg] is not None:
+                    setattr(feat, targarg,
+                            int(tsk_vals[targ][targarg] * precision))
 
 
 def tda(tsk, hp_tsks):
