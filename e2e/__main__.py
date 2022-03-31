@@ -196,5 +196,5 @@ if code_switch in [0, 3]:
             ylimits=[0.0, 1.0],
             xticks=[f'{int(let * 100)}% LET' for let in LET_ratios],
             yaxis_label='Latency Reduction',
-            title=f'{analysis=}, {int(spor * 100)}% sporadic'
+            # title=f'{analysis=}, {int(spor * 100)}% sporadic'
         )
