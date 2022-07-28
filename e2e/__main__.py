@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Note: start experiment from the paper with: python3 e2e -s0 -n1000 -p200
 import getopt
 import sys
 
