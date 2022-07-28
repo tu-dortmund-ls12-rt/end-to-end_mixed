@@ -55,14 +55,15 @@ def LET_spor(chain):
 
 # Periodic + Implicit
 
-def kloda(chain):
+def impl_per(chain):
     """Upper bound for periodic tasks under LET.
     - LET
     - periodic
     """
-    # Compute chain hyperperiod and phase:
+    # Compute chain hyperperiod and phase and maximum wcrt:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
+    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -72,9 +73,9 @@ def kloda(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar < max_phase:
+        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
             continue
-        if zvar > max_phase + hyper:
+        if zvar > max_phase + hyper + WCRT_max:
             break
 
         for this_tsk, next_tsk in zip(chain[:-1], chain[1:]):
@@ -103,6 +104,7 @@ def LET_per(chain):
     # Compute chain hyperperiod and phase:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
+    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -112,9 +114,9 @@ def LET_per(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar < max_phase:
+        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
             continue
-        if zvar > max_phase + hyper:
+        if zvar > max_phase + hyper + WCRT_max:
             break
 
         for this_tsk, next_tsk in zip(chain[:-1], chain[1:]):
@@ -151,7 +153,7 @@ def mix_pessimistic(chain):
 def mix(
         chain,
         impl_spor=duerr,
-        impl_per=kloda,
+        impl_per=impl_per,
         let_spor=LET_spor,
         let_per=LET_per
 ):
@@ -233,6 +235,7 @@ def mix_periodic(chain):
     # Compute chain hyperperiod and phase:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
+    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -242,9 +245,9 @@ def mix_periodic(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar < max_phase:
+        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
             continue
-        if zvar > max_phase + hyper:
+        if zvar > max_phase + hyper + WCRT_max:
             break
 
         for idx, (this_tsk, next_tsk) in enumerate(zip(chain[:-1], chain[1:])):
@@ -355,8 +358,8 @@ if __name__ == "__main__":
     # print(LET_spor(ce_spor_let_inv), '20+8+10+7=45 (Spor, LET)')
     #
     # print('== Periodic, implicit ==')
-    # print(kloda(ce_per_impl), '10+10+3=23 (Kloda)')
-    # print(kloda(ce_per_impl_inv), '20+10+1=31 (Kloda)')
+    # print(impl_per(ce_per_impl), '10+10+3=23 (impl_per)')
+    # print(impl_per(ce_per_impl_inv), '20+10+1=31 (impl_per)')
     #
     # print(davare(ce_per_impl), '10+1+20+3=34 (Davare)')
     # print(davare(ce_per_impl_inv), '20+3+10+1=34 (Davare)')
