@@ -84,6 +84,10 @@ if code_switch in [0, 1]:
     """Make 'number' many task sets, generate ce_chains accordingly, discard those that have no ce_chains, 
     set phase to 0, transform the tasks, store.
     Please note: Task sets are periodic with phase=0 and implicit deadline, and have implicit communication."""
+    # set seed
+    random.seed(314159)
+    np.random.seed(314159)
+
     for ut in utils:
         print(f'{helpers.time_now()}: Utilization={ut}')
         # Make "number" many tasksets
@@ -129,6 +133,9 @@ if code_switch in [0, 1]:
 spor_ratios = [0.2, 0.5, 0.8]  # ratio of tasks per chain that are sporadic
 LET_ratios = [0.2, 0.5, 0.8]  # ratio of tasks per chain have communicate with LET
 if code_switch in [0, 2]:
+    # set seed
+    random.seed(314159)
+    np.random.seed(314159)
 
     # Load data
     ts_ces_all = []
@@ -172,6 +179,9 @@ if code_switch in [0, 2]:
 ##
 
 if code_switch in [0, 3]:
+    # set seed
+    random.seed(314159)
+    np.random.seed(314159)
     # Load data
     ana_res = helpers.load_data(path2 + f'ana_res_n={number}.pickle')
 
