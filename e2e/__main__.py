@@ -13,16 +13,18 @@ import numpy as np
 from multiprocessing import Pool
 import plot
 
-from copy import deepcopy  # to duplicate the system under analysis. TODO do we need this?
+from copy import (
+    deepcopy,
+)  # to duplicate the system under analysis. TODO do we need this?
 
 # set seed
 random.seed(314159)
 np.random.seed(314159)
 
 # output paths
-path1 = 'output/step1/'
-path2 = 'output/step2/'
-path3 = 'output/step3/'
+path1 = "output/step1/"
+path2 = "output/step2/"
+path3 = "output/step3/"
 
 
 # Analysis class
@@ -66,11 +68,11 @@ class AnaRes:
 opts, args = getopt.getopt(sys.argv[1:], "s:p:n:")
 
 for opt, arg in opts:
-    if opt == '-s':  # define which part of the code is being executed
+    if opt == "-s":  # define which part of the code is being executed
         code_switch = int(arg)
-    elif opt in '-p':  # number of processors that are used for the computations
+    elif opt in "-p":  # number of processors that are used for the computations
         processors = int(arg)
-    elif opt in '-n':  # number
+    elif opt in "-n":  # number
         number = int(arg)
     else:
         breakpoint()
@@ -81,7 +83,7 @@ utils = [0.5, 0.6, 0.7, 0.8, 0.9]
 # Make Taskset and chains
 ##
 if code_switch in [0, 1]:
-    """Make 'number' many task sets, generate ce_chains accordingly, discard those that have no ce_chains, 
+    """Make 'number' many task sets, generate ce_chains accordingly, discard those that have no ce_chains,
     set phase to 0, transform the tasks, store.
     Please note: Task sets are periodic with phase=0 and implicit deadline, and have implicit communication."""
     # set seed
@@ -89,7 +91,7 @@ if code_switch in [0, 1]:
     np.random.seed(314159)
 
     for ut in utils:
-        print(f'{helpers.time_now()}: Utilization={ut}')
+        print(f"{helpers.time_now()}: Utilization={ut}")
         # Make "number" many tasksets
         ts_sets = [bench.gen_taskset(ut) for _ in range(number)]
 
@@ -100,23 +102,29 @@ if code_switch in [0, 1]:
         # Modify tasks
         for ts in ts_sets:
             for tsk in ts:
-                # Set phase to 0
-                tsk.rel.phase = 0
+                # # Set phase to 0
+                # tsk.rel.phase = 0
+                # Draw random phase
+                tsk.rel.phase = random.random() * tsk.rel.period
                 # Make implicit communication
-                tsk.add_feature('communication', 'implicit')
+                tsk.add_feature("communication", "implicit")
             # Transform task sets
             transform(ts)
             # TDA
             ts.compute_wcrts()
 
         # Remove task sets with wcrt > dl
-        ts_sets = [ts for ts in ts_sets if all([tsk.dl.dl >= ts.wcrts[tsk] for tsk in ts])]
+        ts_sets = [
+            ts for ts in ts_sets if all([tsk.dl.dl >= ts.wcrts[tsk] for tsk in ts])
+        ]
 
         # Generate 30 to 60 cause-effect chains for each task set (some of them may be discarded during generation)
         ce_sets = [bench.gen_ce_chains(ts) for ts in ts_sets]
 
         # Discard those without ce_chains and match ts with ce_set
-        ts_ces = [(ts, ce_set) for ts, ce_set in zip(ts_sets, ce_sets) if len(ce_set) != 0]
+        ts_ces = [
+            (ts, ce_set) for ts, ce_set in zip(ts_sets, ce_sets) if len(ce_set) != 0
+        ]
 
         if __debug__:
             for ts, ces in ts_ces:
@@ -125,7 +133,7 @@ if code_switch in [0, 1]:
 
         # Store data
         helpers.check_or_make_directory(path1)
-        helpers.write_data(path1 + f'ts_ces_n={number}_u={ut}.pickle', ts_ces)
+        helpers.write_data(path1 + f"ts_ces_n={number}_u={ut}.pickle", ts_ces)
 
 ##
 # Do analyses
@@ -140,7 +148,7 @@ if code_switch in [0, 2]:
     # Load data
     ts_ces_all = []
     for ut in utils:
-        ts_ces_all.extend(helpers.load_data(path1 + f'ts_ces_n={number}_u={ut}.pickle'))
+        ts_ces_all.extend(helpers.load_data(path1 + f"ts_ces_n={number}_u={ut}.pickle"))
 
     ana_res = AnaRes()  # store analysis results here
 
@@ -152,9 +160,9 @@ if code_switch in [0, 2]:
         # Modify the tasks
         for ts, _ in ts_ces:
             for tsk in random.sample(ts[:], int(len(ts) * spor_rat)):
-                tsk.rel.type = 'sporadic'
+                tsk.rel.type = "sporadic"
             for tsk in random.sample(ts[:], int(len(ts) * LET_rat)):
-                tsk.comm.type = 'LET'
+                tsk.comm.type = "LET"
 
         # Flat list
         ces = [ce for _, ces in ts_ces for ce in ces]
@@ -166,13 +174,15 @@ if code_switch in [0, 2]:
             res_mix_improved = p.map(ana.mix_improved, ces)
 
         # Store in Analysis object
-        ana_res.store_res(spor=spor_rat, let=LET_rat, analysis='Pess', vals=res_pess)
-        ana_res.store_res(spor=spor_rat, let=LET_rat, analysis='Mix', vals=res_mix)
-        ana_res.store_res(spor=spor_rat, let=LET_rat, analysis='Improved', vals=res_mix_improved)
+        ana_res.store_res(spor=spor_rat, let=LET_rat, analysis="Pess", vals=res_pess)
+        ana_res.store_res(spor=spor_rat, let=LET_rat, analysis="Mix", vals=res_mix)
+        ana_res.store_res(
+            spor=spor_rat, let=LET_rat, analysis="Improved", vals=res_mix_improved
+        )
 
     # Store analysis result object
     helpers.check_or_make_directory(path2)
-    helpers.write_data(path2 + f'ana_res_n={number}.pickle', ana_res)
+    helpers.write_data(path2 + f"ana_res_n={number}.pickle", ana_res)
 
 ##
 # Plot data
@@ -183,10 +193,10 @@ if code_switch in [0, 3]:
     random.seed(314159)
     np.random.seed(314159)
     # Load data
-    ana_res = helpers.load_data(path2 + f'ana_res_n={number}.pickle')
+    ana_res = helpers.load_data(path2 + f"ana_res_n={number}.pickle")
 
-    analyses = ['Mix', 'Improved']
-    baseline = 'Pess'
+    analyses = ["Mix", "Improved"]
+    baseline = "Pess"
 
     x_axes = {}
 
@@ -195,17 +205,20 @@ if code_switch in [0, 3]:
     for analysis, spor in [(x, y) for x in analyses for y in spor_ratios]:
         data = []
         for let in LET_ratios:
-            data.append([
-                (y - x) / y for x, y in zip(
-                    ana_res.results(spor=spor, let=let, analysis=analysis),
-                    ana_res.results(spor=spor, let=let, analysis=baseline)
-                )
-            ])
+            data.append(
+                [
+                    (y - x) / y
+                    for x, y in zip(
+                        ana_res.results(spor=spor, let=let, analysis=analysis),
+                        ana_res.results(spor=spor, let=let, analysis=baseline),
+                    )
+                ]
+            )
         plot.plot(
             data,
-            path3 + f'{analysis=}_{spor=}.pdf',
+            path3 + f"{analysis=}_{spor=}.pdf",
             ylimits=[0.0, 1.0],
-            xticks=[f'{int(let * 100)}% LET' for let in LET_ratios],
-            yaxis_label='Latency Reduction',
+            xticks=[f"{int(let * 100)}% LET" for let in LET_ratios],
+            yaxis_label="Latency Reduction",
             # title=f'{analysis=}, {int(spor * 100)}% sporadic'
         )
