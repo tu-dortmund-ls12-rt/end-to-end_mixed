@@ -57,6 +57,15 @@ The script takes 3 inputs:
     - 3: only step 3
     - 0: all 3 steps one after the other.
 
+The experiments from the paper 
+*Timing Analysis of Cause-Effect Chains with Heterogeneous Communication Mechanisms*
+were started using the command
+```
+python3.10 e2e -s0 -n1000 -p200
+``` 
+
+However, this might take too much time on a regular computer. 
+To obtain similar results please adjust the parameters of the script.
 
 ### Authors
 
