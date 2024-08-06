@@ -8,12 +8,20 @@ for RTNS 2023.
 
 https://dl.acm.org/doi/abs/10.1145/3575757.3593640
 
+This version uses modified algorithms which are compatible with the warm-up, as shown in the dissertation of Mario Günzel.
+
 ## Environment Setup
 ### Requirements
 
-To run the experiments Python 3 is required (Python 3.10+ should work). Moreover, the following packages are required:
+To run the experiments Python 3 is required (Python 3.9+ should work). Moreover, the following packages are required:
 
-Please install Python 3 and the required packages.
+Please install Python 3 and the required packages. 
+
+```
+python3 -m venv venv 
+source venv/bin/activate
+pip3 install -r requirements.txt
+```
 
 
 ### File Structure
@@ -45,7 +53,7 @@ In each step, the machines loads the results from the previous step, conducts th
 
 To run the experiments, use
 ```
-python3.10 e2e -p1 -n10 -s0
+python3 e2e -p1 -n10 -s0
 ```
 
 The script takes 3 inputs:
@@ -61,7 +69,7 @@ The experiments from the paper
 *Timing Analysis of Cause-Effect Chains with Heterogeneous Communication Mechanisms*
 were started using the command
 ```
-python3.10 e2e -s0 -n1000 -p200
+python3 e2e -s0 -n1000 -p200
 ``` 
 
 However, this might take too much time on a regular computer. 
@@ -82,4 +90,4 @@ This work has been supported by Deutsche Forschungsgemeinschaft (DFG), as part o
 
 ### License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
