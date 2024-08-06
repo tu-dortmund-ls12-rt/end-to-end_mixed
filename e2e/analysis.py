@@ -56,14 +56,14 @@ def LET_spor(chain):
 # Periodic + Implicit
 
 def impl_per(chain):
-    """Upper bound for periodic tasks under LET.
-    - LET
+    """Upper bound for periodic tasks under implicit communication.
+    - implicit communication
     - periodic
     """
     # Compute chain hyperperiod and phase and maximum wcrt:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
-    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
+    # WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -73,9 +73,9 @@ def impl_per(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
-            continue
-        if zvar > max_phase + hyper + WCRT_max:
+        # if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
+        #     continue
+        if zvar > max_phase + hyper: # + WCRT_max:
             break
 
         for this_tsk, next_tsk in zip(chain[:-1], chain[1:]):
@@ -104,7 +104,7 @@ def LET_per(chain):
     # Compute chain hyperperiod and phase:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
-    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
+    # WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -114,9 +114,9 @@ def LET_per(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
-            continue
-        if zvar > max_phase + hyper + WCRT_max:
+        # if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
+        #     continue
+        if zvar > max_phase + hyper: # + WCRT_max:
             break
 
         for this_tsk, next_tsk in zip(chain[:-1], chain[1:]):
@@ -235,7 +235,7 @@ def mix_periodic(chain):
     # Compute chain hyperperiod and phase:
     hyper = chain.hyperperiod()
     max_phase = chain.max_phase()
-    WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
+    # WCRT_max = max(chain.base_ts.wcrts[tsk] for tsk in chain)
 
     lengths = []
 
@@ -245,9 +245,9 @@ def mix_periodic(chain):
         relvar = _release(mvar + 1, chain[0])
 
         # check conditions
-        if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
-            continue
-        if zvar > max_phase + hyper + WCRT_max:
+        # if relvar + chain.base_ts.wcrts[chain[0]] < max_phase:
+        #     continue
+        if zvar > max_phase + hyper: # + WCRT_max:
             break
 
         for idx, (this_tsk, next_tsk) in enumerate(zip(chain[:-1], chain[1:])):

@@ -33,7 +33,7 @@ pip3 install -r requirements.txt
     |   └── step3                    # Plots as in the paper
     ├── e2e                          # Placeholder for the evaluation
     │   ├── cechains                 # Cause-effect chains
-    │   ├── tasks   # Tasks and tasksets
+    │   ├── tasks                    # Tasks and tasksets
     │   ├── __main__.py              # Main file for the evaluation
     │   ├── analysis.py              # Analysis
     │   ├── benchmark_WATERS.py      # The benchmark of our analysis
